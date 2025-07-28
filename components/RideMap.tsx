@@ -1,8 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { useMap, useMapsLibrary } from "@googlemaps/react-wrapper"
-import { MapPin, Car, Users, Clock } from "lucide-react"
+import { Car, Users, Clock } from "lucide-react"
 
 interface Driver {
   id: string
@@ -22,33 +21,60 @@ interface Passenger {
 }
 
 export function RideMap() {
-  const map = useMap()
-  const geometry = useMapsLibrary("geometry")
+  const mapRef = useRef<HTMLDivElement>(null)
+  const mapInstanceRef = useRef<google.maps.Map | null>(null)
   const [drivers, setDrivers] = useState<Driver[]>([])
   const [passengers, setPassengers] = useState<Passenger[]>([])
   const [selectedRide, setSelectedRide] = useState<any>(null)
+  const [mapError, setMapError] = useState<string | null>(null)
   const markersRef = useRef<google.maps.Marker[]>([])
-  const directionsServiceRef = useRef<google.maps.DirectionsService>()
-  const directionsRendererRef = useRef<google.maps.DirectionsRenderer>()
+  const directionsServiceRef = useRef<google.maps.DirectionsService | null>(null)
+  const directionsRendererRef = useRef<google.maps.DirectionsRenderer | null>(null)
 
   // Initialize map
   useEffect(() => {
-    if (!map) return
+    if (!mapRef.current || mapInstanceRef.current) return
 
-    // Set initial center (San Francisco)
-    map.setCenter({ lat: 37.7749, lng: -122.4194 })
-    map.setZoom(13)
+    // Check if Google Maps API is available
+    if (typeof google === 'undefined' || !google.maps) {
+      setMapError("Google Maps API not loaded. Please check your API key.")
+      return
+    }
 
-    // Initialize services
-    directionsServiceRef.current = new google.maps.DirectionsService()
-    directionsRendererRef.current = new google.maps.DirectionsRenderer({
-      map,
-      suppressMarkers: true,
-    })
+    try {
+      // Initialize the map
+      const map = new google.maps.Map(mapRef.current, {
+        center: { lat: 37.7749, lng: -122.4194 },
+        zoom: 13,
+        mapTypeId: google.maps.MapTypeId.ROADMAP,
+        mapTypeControl: false,
+        streetViewControl: false,
+        fullscreenControl: false,
+        styles: [
+          {
+            featureType: "poi",
+            elementType: "labels",
+            stylers: [{ visibility: "off" }]
+          }
+        ]
+      })
 
-    // Generate sample data
-    generateSampleData()
-  }, [map])
+      mapInstanceRef.current = map
+
+      // Initialize services
+      directionsServiceRef.current = new google.maps.DirectionsService()
+      directionsRendererRef.current = new google.maps.DirectionsRenderer({
+        map,
+        suppressMarkers: true,
+      })
+
+      // Generate sample data
+      generateSampleData()
+    } catch (error) {
+      console.error("Error initializing map:", error)
+      setMapError("Failed to initialize map. Please check your API key and internet connection.")
+    }
+  }, [])
 
   const generateSampleData = () => {
     const sampleDrivers: Driver[] = [
@@ -101,122 +127,157 @@ export function RideMap() {
   }
 
   const addMarkersToMap = (drivers: Driver[], passengers: Passenger[]) => {
-    if (!map) return
+    if (!mapInstanceRef.current) return
 
-    // Clear existing markers
-    markersRef.current.forEach(marker => marker.setMap(null))
-    markersRef.current = []
+    try {
+      // Clear existing markers
+      markersRef.current.forEach(marker => marker.setMap(null))
+      markersRef.current = []
 
-    // Add driver markers
-    drivers.forEach(driver => {
-      const marker = new google.maps.Marker({
-        position: driver.position,
-        map,
-        icon: {
-          url: "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(`
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="12" cy="12" r="10" fill="#3b82f6" stroke="white" stroke-width="2"/>
-              <path d="M8 12l2 2 6-6" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          `),
-          scaledSize: new google.maps.Size(24, 24),
-        },
-        title: `${driver.name} - ${driver.vehicle}`,
+      // Add driver markers
+      drivers.forEach(driver => {
+        const marker = new google.maps.Marker({
+          position: driver.position,
+          map: mapInstanceRef.current,
+          icon: {
+            url: "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(`
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="12" r="10" fill="#3b82f6" stroke="white" stroke-width="2"/>
+                <path d="M8 12l2 2 6-6" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            `),
+            scaledSize: new google.maps.Size(24, 24),
+          },
+          title: `${driver.name} - ${driver.vehicle}`,
+        })
+
+        marker.addListener("click", () => {
+          showDriverInfo(driver, marker)
+        })
+
+        markersRef.current.push(marker)
       })
 
-      marker.addListener("click", () => {
-        showDriverInfo(driver)
+      // Add passenger markers
+      passengers.forEach(passenger => {
+        const marker = new google.maps.Marker({
+          position: passenger.position,
+          map: mapInstanceRef.current,
+          icon: {
+            url: "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(`
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="12" r="10" fill="#10b981" stroke="white" stroke-width="2"/>
+                <path d="M12 8v8M8 12h8" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            `),
+            scaledSize: new google.maps.Size(24, 24),
+          },
+          title: `${passenger.name} - ${passenger.status}`,
+        })
+
+        marker.addListener("click", () => {
+          showPassengerInfo(passenger, marker)
+        })
+
+        markersRef.current.push(marker)
       })
-
-      markersRef.current.push(marker)
-    })
-
-    // Add passenger markers
-    passengers.forEach(passenger => {
-      const marker = new google.maps.Marker({
-        position: passenger.position,
-        map,
-        icon: {
-          url: "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(`
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="12" cy="12" r="10" fill="#10b981" stroke="white" stroke-width="2"/>
-              <path d="M12 8v8M8 12h8" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          `),
-          scaledSize: new google.maps.Size(24, 24),
-        },
-        title: `${passenger.name} - ${passenger.status}`,
-      })
-
-      marker.addListener("click", () => {
-        showPassengerInfo(passenger)
-      })
-
-      markersRef.current.push(marker)
-    })
-  }
-
-  const showDriverInfo = (driver: Driver) => {
-    const infoWindow = new google.maps.InfoWindow({
-      content: `
-        <div class="p-4 max-w-sm">
-          <h3 class="font-semibold text-lg">${driver.name}</h3>
-          <p class="text-sm text-gray-600">${driver.vehicle}</p>
-          <div class="flex items-center mt-2">
-            <span class="text-yellow-500">★</span>
-            <span class="ml-1 text-sm">${driver.rating}</span>
-            <span class="ml-2 px-2 py-1 text-xs rounded-full ${driver.available ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
-              ${driver.available ? 'Available' : 'Busy'}
-            </span>
-          </div>
-        </div>
-      `,
-    })
-
-    const marker = markersRef.current.find(m => m.getTitle()?.includes(driver.name))
-    if (marker) {
-      infoWindow.open(map, marker)
+    } catch (error) {
+      console.error("Error adding markers:", error)
     }
   }
 
-  const showPassengerInfo = (passenger: Passenger) => {
-    const infoWindow = new google.maps.InfoWindow({
-      content: `
-        <div class="p-4 max-w-sm">
-          <h3 class="font-semibold text-lg">${passenger.name}</h3>
-          <p class="text-sm text-gray-600">Status: ${passenger.status}</p>
-          <button class="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
-            Match Ride
-          </button>
-        </div>
-      `,
-    })
+  const showDriverInfo = (driver: Driver, marker: google.maps.Marker) => {
+    try {
+      const infoWindow = new google.maps.InfoWindow({
+        content: `
+          <div class="p-4 max-w-sm">
+            <h3 class="font-semibold text-lg">${driver.name}</h3>
+            <p class="text-sm text-gray-600">${driver.vehicle}</p>
+            <div class="flex items-center mt-2">
+              <span class="text-yellow-500">★</span>
+              <span class="ml-1 text-sm">${driver.rating}</span>
+              <span class="ml-2 px-2 py-1 text-xs rounded-full ${driver.available ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                ${driver.available ? 'Available' : 'Busy'}
+              </span>
+            </div>
+          </div>
+        `,
+      })
 
-    const marker = markersRef.current.find(m => m.getTitle()?.includes(passenger.name))
-    if (marker) {
-      infoWindow.open(map, marker)
+      infoWindow.open(mapInstanceRef.current, marker)
+    } catch (error) {
+      console.error("Error showing driver info:", error)
+    }
+  }
+
+  const showPassengerInfo = (passenger: Passenger, marker: google.maps.Marker) => {
+    try {
+      const infoWindow = new google.maps.InfoWindow({
+        content: `
+          <div class="p-4 max-w-sm">
+            <h3 class="font-semibold text-lg">${passenger.name}</h3>
+            <p class="text-sm text-gray-600">Status: ${passenger.status}</p>
+            <button class="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+              Match Ride
+            </button>
+          </div>
+        `,
+      })
+
+      infoWindow.open(mapInstanceRef.current, marker)
+    } catch (error) {
+      console.error("Error showing passenger info:", error)
     }
   }
 
   const calculateRoute = (origin: { lat: number; lng: number }, destination: { lat: number; lng: number }) => {
     if (!directionsServiceRef.current || !directionsRendererRef.current) return
 
-    directionsServiceRef.current.route(
-      {
-        origin,
-        destination,
-        travelMode: google.maps.TravelMode.DRIVING,
-      },
-      (result, status) => {
-        if (status === "OK" && result) {
-          directionsRendererRef.current?.setDirections(result)
+    try {
+      directionsServiceRef.current.route(
+        {
+          origin,
+          destination,
+          travelMode: google.maps.TravelMode.DRIVING,
+        },
+        (result: google.maps.DirectionsResult | null, status: google.maps.DirectionsStatus) => {
+          if (status === "OK" && result) {
+            directionsRendererRef.current?.setDirections(result)
+          } else {
+            console.error("Directions request failed:", status)
+          }
         }
-      }
+      )
+    } catch (error) {
+      console.error("Error calculating route:", error)
+    }
+  }
+
+  // Show error state if map failed to load
+  if (mapError) {
+    return (
+      <div className="map-container flex items-center justify-center">
+        <div className="text-center p-8">
+          <div className="text-red-500 text-6xl mb-4">🗺️</div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Map Loading Error</h2>
+          <p className="text-gray-600 mb-4">{mapError}</p>
+          <div className="text-sm text-gray-500">
+            <p>To fix this issue:</p>
+            <ul className="list-disc list-inside mt-2">
+              <li>Check your Google Maps API key in .env.local</li>
+              <li>Ensure the API key has the necessary permissions</li>
+              <li>Verify your internet connection</li>
+            </ul>
+          </div>
+        </div>
+      </div>
     )
   }
 
   return (
     <div className="map-container">
+      <div ref={mapRef} className="w-full h-full" />
+      
       {/* Map controls overlay */}
       <div className="absolute top-4 left-4 z-10 space-y-2">
         <button
