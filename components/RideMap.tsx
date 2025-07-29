@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { useMap, useMapsLibrary } from "@googlemaps/react-wrapper"
 import { MapPin, Car, Users, Clock } from "lucide-react"
 
 interface Driver {
@@ -21,36 +20,35 @@ interface Passenger {
   status: "waiting" | "matched" | "in-ride"
 }
 
-export function RideMap() {
-  const map = useMap()
-  const geometry = useMapsLibrary("geometry")
+const RideMap = () => {
+  const mapRef = useRef<HTMLDivElement>(null)
+  const [map, setMap] = useState<any>(null)
   const [drivers, setDrivers] = useState<Driver[]>([])
   const [passengers, setPassengers] = useState<Passenger[]>([])
   const [selectedRide, setSelectedRide] = useState<any>(null)
-  const markersRef = useRef<google.maps.Marker[]>([])
-  const directionsServiceRef = useRef<google.maps.DirectionsService>()
-  const directionsRendererRef = useRef<google.maps.DirectionsRenderer>()
+  const markersRef = useRef<any[]>([])
+  const directionsServiceRef = useRef<any>(null)
+  const directionsRendererRef = useRef<any>(null)
 
   // Initialize map
   useEffect(() => {
-    if (!map) return
-
-    // Set initial center (San Francisco)
-    map.setCenter({ lat: 37.7749, lng: -122.4194 })
-    map.setZoom(13)
-
-    // Initialize services
-    directionsServiceRef.current = new google.maps.DirectionsService()
-    directionsRendererRef.current = new google.maps.DirectionsRenderer({
-      map,
+    if (!mapRef.current || map) return;
+    const googleObj = (window as any).google;
+    const googleMap = new googleObj.maps.Map(mapRef.current, {
+      center: { lat: 37.7749, lng: -122.4194 },
+      zoom: 13,
+    });
+    setMap(googleMap);
+    directionsServiceRef.current = new googleObj.maps.DirectionsService();
+    directionsRendererRef.current = new googleObj.maps.DirectionsRenderer({
+      map: googleMap,
       suppressMarkers: true,
-    })
+    });
+    generateSampleData(googleMap);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapRef, map]);
 
-    // Generate sample data
-    generateSampleData()
-  }, [map])
-
-  const generateSampleData = () => {
+  const generateSampleData = (googleMap?: any) => {
     const sampleDrivers: Driver[] = [
       {
         id: "1",
@@ -97,11 +95,11 @@ export function RideMap() {
 
     setDrivers(sampleDrivers)
     setPassengers(samplePassengers)
-    addMarkersToMap(sampleDrivers, samplePassengers)
+    addMarkersToMap(sampleDrivers, samplePassengers, googleMap || map)
   }
 
-  const addMarkersToMap = (drivers: Driver[], passengers: Passenger[]) => {
-    if (!map) return
+  const addMarkersToMap = (drivers: Driver[], passengers: Passenger[], mapInstance: any) => {
+    if (!mapInstance) return
 
     // Clear existing markers
     markersRef.current.forEach(marker => marker.setMap(null))
@@ -109,9 +107,10 @@ export function RideMap() {
 
     // Add driver markers
     drivers.forEach(driver => {
-      const marker = new google.maps.Marker({
+      const googleObj = (window as any).google;
+      const marker = new googleObj.maps.Marker({
         position: driver.position,
-        map,
+        map: mapInstance,
         icon: {
           url: "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(`
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -119,7 +118,7 @@ export function RideMap() {
               <path d="M8 12l2 2 6-6" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           `),
-          scaledSize: new google.maps.Size(24, 24),
+          scaledSize: new (window as any).google.maps.Size(24, 24),
         },
         title: `${driver.name} - ${driver.vehicle}`,
       })
@@ -133,9 +132,10 @@ export function RideMap() {
 
     // Add passenger markers
     passengers.forEach(passenger => {
-      const marker = new google.maps.Marker({
+      const googleObj = (window as any).google;
+      const marker = new googleObj.maps.Marker({
         position: passenger.position,
-        map,
+        map: mapInstance,
         icon: {
           url: "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(`
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -143,7 +143,7 @@ export function RideMap() {
               <path d="M12 8v8M8 12h8" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           `),
-          scaledSize: new google.maps.Size(24, 24),
+          scaledSize: new (window as any).google.maps.Size(24, 24),
         },
         title: `${passenger.name} - ${passenger.status}`,
       })
@@ -157,7 +157,7 @@ export function RideMap() {
   }
 
   const showDriverInfo = (driver: Driver) => {
-    const infoWindow = new google.maps.InfoWindow({
+    const infoWindow = new (window as any).google.maps.InfoWindow({
       content: `
         <div class="p-4 max-w-sm">
           <h3 class="font-semibold text-lg">${driver.name}</h3>
@@ -174,13 +174,13 @@ export function RideMap() {
     })
 
     const marker = markersRef.current.find(m => m.getTitle()?.includes(driver.name))
-    if (marker) {
+    if (marker && map) {
       infoWindow.open(map, marker)
     }
   }
 
   const showPassengerInfo = (passenger: Passenger) => {
-    const infoWindow = new google.maps.InfoWindow({
+    const infoWindow = new (window as any).google.maps.InfoWindow({
       content: `
         <div class="p-4 max-w-sm">
           <h3 class="font-semibold text-lg">${passenger.name}</h3>
@@ -193,7 +193,7 @@ export function RideMap() {
     })
 
     const marker = markersRef.current.find(m => m.getTitle()?.includes(passenger.name))
-    if (marker) {
+    if (marker && map) {
       infoWindow.open(map, marker)
     }
   }
@@ -205,9 +205,9 @@ export function RideMap() {
       {
         origin,
         destination,
-        travelMode: google.maps.TravelMode.DRIVING,
+        travelMode: (window as any).google.maps.TravelMode.DRIVING,
       },
-      (result, status) => {
+      (result: any, status: any) => {
         if (status === "OK" && result) {
           directionsRendererRef.current?.setDirections(result)
         }
@@ -216,7 +216,8 @@ export function RideMap() {
   }
 
   return (
-    <div className="map-container">
+    <div className="map-container" style={{ width: "100%", height: "100%", position: "relative" }}>
+      <div ref={mapRef} style={{ width: "100%", height: "100%" }} />
       {/* Map controls overlay */}
       <div className="absolute top-4 left-4 z-10 space-y-2">
         <button
@@ -252,3 +253,5 @@ export function RideMap() {
     </div>
   )
 }
+
+export default RideMap
