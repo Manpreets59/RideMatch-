@@ -1,6 +1,7 @@
 "use client"
 
 import { Bell, Menu, Search } from "lucide-react"
+import { config } from "@/lib/config"
 
 export function Header() {
   return (
@@ -12,7 +13,7 @@ export function Header() {
             <span className="text-white font-bold text-sm">R</span>
           </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">RideMatch</h1>
+            <h1 className="text-xl font-bold text-gray-900">{config.app.name}</h1>
             <p className="text-xs text-gray-600">Smart Ride Sharing</p>
           </div>
         </div>

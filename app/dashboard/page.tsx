@@ -23,6 +23,7 @@ import {
   Bell,
   Settings,
 } from "lucide-react"
+import { config } from "@/lib/config"
 
 export default function DashboardPage() {
   const [searchFrom, setSearchFrom] = useState("")
@@ -79,7 +80,7 @@ export default function DashboardPage() {
             <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-green-600 rounded-lg flex items-center justify-center">
               <MapPin className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-bold text-gray-900">RideMatch</span>
+            <span className="text-xl font-bold text-gray-900">{config.app.name}</span>
           </Link>
 
           <div className="flex items-center space-x-4">

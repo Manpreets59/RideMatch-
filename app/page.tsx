@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { MapPin, Users, DollarSign, Leaf, Shield, Clock } from "lucide-react"
+import { config } from "@/lib/config"
 
 export default function HomePage() {
   return (
@@ -14,7 +15,7 @@ export default function HomePage() {
             <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-green-600 rounded-lg flex items-center justify-center">
               <MapPin className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-bold text-gray-900">RideMatch</span>
+            <span className="text-xl font-bold text-gray-900">{config.app.name}</span>
           </div>
           <nav className="hidden md:flex items-center space-x-6">
             <Link href="#features" className="text-gray-600 hover:text-gray-900">
@@ -74,7 +75,7 @@ export default function HomePage() {
       <section id="features" className="py-20 px-4 bg-white">
         <div className="container mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Why Choose RideMatch?</h2>
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Why Choose {config.app.name}?</h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
               Our intelligent platform makes ride sharing safe, affordable, and environmentally friendly.
             </p>
@@ -160,7 +161,7 @@ export default function HomePage() {
       <section id="how-it-works" className="py-20 px-4 bg-gray-50">
         <div className="container mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">How RideMatch Works</h2>
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">How {config.app.name} Works</h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
               Getting started is simple. Just three easy steps to find your perfect ride match.
             </p>
@@ -253,7 +254,7 @@ export default function HomePage() {
                 </div>
                 <h3 className="text-2xl font-bold text-gray-900 mb-4">Ready to Start?</h3>
                 <p className="text-gray-600 mb-6">
-                  Join thousands of users already saving money and making connections through RideMatch.
+                  Join thousands of users already saving money and making connections through {config.app.name}.
                 </p>
                 <Link href="/dashboard">
                   <Button
@@ -278,7 +279,7 @@ export default function HomePage() {
                 <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-green-600 rounded-lg flex items-center justify-center">
                   <MapPin className="w-5 h-5 text-white" />
                 </div>
-                <span className="text-xl font-bold">RideMatch</span>
+                <span className="text-xl font-bold">{config.app.name}</span>
               </div>
               <p className="text-gray-400">
                 Connecting travelers, building community, and making transportation more sustainable.
@@ -365,7 +366,7 @@ export default function HomePage() {
           </div>
 
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 RideMatch. All rights reserved. Built with Google Maps Platform and Firebase.</p>
+                          <p>&copy; 2024 {config.app.name}. All rights reserved. Built with Google Maps Platform and Firebase.</p>
           </div>
         </div>
       </footer>

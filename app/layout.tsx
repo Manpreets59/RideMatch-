@@ -2,10 +2,11 @@ import type { Metadata } from 'next'
 import { GeistSans } from 'geist/font/sans'
 import { GeistMono } from 'geist/font/mono'
 import './globals.css'
+import { config } from '@/lib/config'
 
 export const metadata: Metadata = {
-  title: 'RideMatch App',
-  description: 'A community-driven ride matching app',
+  title: config.app.name,
+  description: config.app.description,
   generator: 'Next.js',
 }
 
