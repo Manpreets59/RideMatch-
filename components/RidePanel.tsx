@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { Car, MapPin, Star, Clock, Users, Settings, Bell } from "lucide-react"
+import { config } from "@/lib/config"
 
 interface Ride {
   id: string
@@ -73,7 +74,7 @@ export function RidePanel() {
     <div className="w-96 bg-white border-l border-gray-200 flex flex-col">
       {/* Header */}
       <div className="p-6 border-b border-gray-200">
-        <h1 className="text-2xl font-bold text-gray-900">RideMatch</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{config.app.name}</h1>
         <p className="text-sm text-gray-600 mt-1">Smart ride sharing with Google Maps</p>
       </div>
 

@@ -132,9 +132,18 @@ directionsService.route({
 
 3. **Set up environment variables**
    ```bash
+   # Run the setup script (recommended)
+   npm run setup
+   
+   # Or manually copy the example file
    cp .env.local.example .env.local
    ```
-   Add your Google Maps API key to `.env.local`
+   
+   Configure your environment variables in `.env.local`:
+   - Firebase configuration (API key, project ID, etc.)
+   - Google Maps API key
+   - App name and description
+   - Feature flags
 
 4. **Run the development server**
    ```bash

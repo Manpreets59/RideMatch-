@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { MapPin, Mail, Lock, User, Phone } from "lucide-react"
+import { config } from "@/lib/config"
 
 export default function AuthPage() {
   const [isLoading, setIsLoading] = useState(false)
@@ -33,7 +34,7 @@ export default function AuthPage() {
             <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-green-600 rounded-lg flex items-center justify-center">
               <MapPin className="w-6 h-6 text-white" />
             </div>
-            <span className="text-2xl font-bold text-gray-900">RideMatch</span>
+            <span className="text-2xl font-bold text-gray-900">{config.app.name}</span>
           </Link>
           <p className="text-gray-600">Join the community of smart travelers</p>
         </div>
@@ -48,7 +49,7 @@ export default function AuthPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Welcome Back</CardTitle>
-                <CardDescription>Sign in to your RideMatch account to start finding rides.</CardDescription>
+                <CardDescription>Sign in to your {config.app.name} account to start finding rides.</CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-4">
@@ -87,7 +88,7 @@ export default function AuthPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Create Account</CardTitle>
-                <CardDescription>Join RideMatch and start sharing rides with your community.</CardDescription>
+                <CardDescription>Join {config.app.name} and start sharing rides with your community.</CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-4">
