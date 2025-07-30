@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useMemo } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -9,6 +9,8 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Textarea } from "@/components/ui/textarea"
 import {
   MapPin,
   Search,
@@ -22,53 +24,279 @@ import {
   MessageCircle,
   Bell,
   Settings,
+  CheckCircle,
+  AlertCircle,
+  Loader2,
 } from "lucide-react"
 
-export default function DashboardPage() {
-  const [searchFrom, setSearchFrom] = useState("")
-  const [searchTo, setSearchTo] = useState("")
+interface Ride {
+  id: number
+  driver: string
+  avatar?: string
+  rating: number
+  from: string
+  to: string
+  time: string
+  date: string
+  price: string
+  seats: number
+  distance: string
+  description?: string
+  status: 'available' | 'requested' | 'completed'
+}
 
-  const mockRides = [
-    {
-      id: 1,
-      driver: "Sarah Johnson",
-      avatar: "/placeholder.svg?height=40&width=40",
-      rating: 4.9,
-      from: "Downtown Seattle",
-      to: "Bellevue Tech Center",
-      time: "8:00 AM",
-      date: "Today",
-      price: "$8",
-      seats: 3,
-      distance: "12 miles",
-    },
-    {
-      id: 2,
-      driver: "Mike Chen",
-      avatar: "/placeholder.svg?height=40&width=40",
-      rating: 4.8,
-      from: "Capitol Hill",
-      to: "University of Washington",
-      time: "9:15 AM",
-      date: "Tomorrow",
-      price: "Free",
-      seats: 2,
-      distance: "8 miles",
-    },
-    {
-      id: 3,
-      driver: "Emma Davis",
-      avatar: "/placeholder.svg?height=40&width=40",
+interface UserStats {
+  ridesTaken: number
+  ridesOffered: number
+  moneySaved: number
+  co2Saved: number
+}
+
+interface SearchFilters {
+  from: string
+  to: string
+  date: string
+  time: string
+}
+
+interface OfferRideForm {
+  from: string
+  to: string
+  date: string
+  time: string
+  seats: number
+  price: number
+  description: string
+}
+
+export default function DashboardPage() {
+  // State management
+  const [searchFilters, setSearchFilters] = useState<SearchFilters>({
+    from: "",
+    to: "",
+    date: "",
+    time: ""
+  })
+  
+  const [offerForm, setOfferForm] = useState<OfferRideForm>({
+    from: "",
+    to: "",
+    date: "",
+    time: "",
+    seats: 1,
+    price: 0,
+    description: ""
+  })
+
+  const [rides, setRides] = useState<Ride[]>([])
+  const [userStats, setUserStats] = useState<UserStats>({
+    ridesTaken: 12,
+    ridesOffered: 8,
+    moneySaved: 156,
+    co2Saved: 45
+  })
+  
+  const [isSearching, setIsSearching] = useState(false)
+  const [isSubmittingOffer, setIsSubmittingOffer] = useState(false)
+  const [alert, setAlert] = useState<{type: 'success' | 'error', message: string} | null>(null)
+  const [requestedRides, setRequestedRides] = useState<Set<number>>(new Set())
+
+  // Initialize with mock data
+  useEffect(() => {
+    const mockRides: Ride[] = [
+      {
+        id: 1,
+        driver: "Sarah Johnson",
+        rating: 4.9,
+        from: "Downtown Seattle",
+        to: "Bellevue Tech Center",
+        time: "8:00 AM",
+        date: getCurrentDate(),
+        price: "$8",
+        seats: 3,
+        distance: "12 miles",
+        description: "Regular commute, non-smoking car",
+        status: 'available'
+      },
+      {
+        id: 2,
+        driver: "Mike Chen",
+        rating: 4.8,
+        from: "Capitol Hill",
+        to: "University of Washington",
+        time: "9:15 AM",
+        date: getTomorrowDate(),
+        price: "Free",
+        seats: 2,
+        distance: "8 miles",
+        description: "Going to campus, students welcome",
+        status: 'available'
+      },
+      {
+        id: 3,
+        driver: "Emma Davis",
+        rating: 5.0,
+        from: "Fremont",
+        to: "Amazon HQ",
+        time: "7:45 AM",
+        date: getCurrentDate(),
+        price: "$6",
+        seats: 1,
+        distance: "15 miles",
+        description: "Early bird special, coffee provided!",
+        status: 'available'
+      },
+    ]
+    setRides(mockRides)
+  }, [])
+
+  // Helper functions
+  function getCurrentDate() {
+    return new Date().toISOString().split('T')[0]
+  }
+
+  function getTomorrowDate() {
+    const tomorrow = new Date()
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    return tomorrow.toISOString().split('T')[0]
+  }
+
+  function getInitials(name: string) {
+    return name.split(' ').map(n => n[0]).join('')
+  }
+
+  function showAlert(type: 'success' | 'error', message: string) {
+    setAlert({ type, message })
+    setTimeout(() => setAlert(null), 5000)
+  }
+
+  // Filter rides based on search criteria
+  const filteredRides = useMemo(() => {
+    return rides.filter(ride => {
+      const matchesFrom = !searchFilters.from || 
+        ride.from.toLowerCase().includes(searchFilters.from.toLowerCase())
+      const matchesTo = !searchFilters.to || 
+        ride.to.toLowerCase().includes(searchFilters.to.toLowerCase())
+      const matchesDate = !searchFilters.date || ride.date === searchFilters.date
+      
+      return matchesFrom && matchesTo && matchesDate && ride.status === 'available'
+    })
+  }, [rides, searchFilters])
+
+  // Handle search
+  const handleSearch = async () => {
+    if (!searchFilters.from && !searchFilters.to) {
+      showAlert('error', 'Please enter at least a pickup or destination location')
+      return
+    }
+
+    setIsSearching(true)
+    
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    
+    setIsSearching(false)
+    showAlert('success', `Found ${filteredRides.length} rides matching your criteria`)
+  }
+
+  // Handle ride request
+  const handleRequestRide = async (rideId: number) => {
+    if (requestedRides.has(rideId)) {
+      showAlert('error', 'You have already requested this ride')
+      return
+    }
+
+    setRequestedRides(prev => new Set([...prev, rideId]))
+    
+    // Update ride status
+    setRides(prev => prev.map(ride => 
+      ride.id === rideId 
+        ? { ...ride, seats: ride.seats - 1, status: ride.seats === 1 ? 'requested' : 'available' }
+        : ride
+    ))
+
+    // Update user stats
+    setUserStats(prev => ({
+      ...prev,
+      ridesTaken: prev.ridesTaken + 1
+    }))
+
+    showAlert('success', 'Ride request sent! The driver will be notified.')
+  }
+
+  // Handle offer ride form submission
+  const handleOfferRide = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    // Validation
+    if (!offerForm.from || !offerForm.to || !offerForm.date || !offerForm.time) {
+      showAlert('error', 'Please fill in all required fields')
+      return
+    }
+
+    if (offerForm.seats < 1 || offerForm.seats > 7) {
+      showAlert('error', 'Please enter a valid number of seats (1-7)')
+      return
+    }
+
+    if (offerForm.price < 0) {
+      showAlert('error', 'Price cannot be negative')
+      return
+    }
+
+    setIsSubmittingOffer(true)
+
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1500))
+
+    // Add new ride to list
+    const newRide: Ride = {
+      id: Date.now(),
+      driver: "You",
       rating: 5.0,
-      from: "Fremont",
-      to: "Amazon HQ",
-      time: "7:45 AM",
-      date: "Today",
-      price: "$6",
+      from: offerForm.from,
+      to: offerForm.to,
+      time: offerForm.time,
+      date: offerForm.date,
+      price: offerForm.price === 0 ? "Free" : `$${offerForm.price}`,
+      seats: offerForm.seats,
+      distance: "Calculating...",
+      description: offerForm.description,
+      status: 'available'
+    }
+
+    setRides(prev => [newRide, ...prev])
+
+    // Update user stats
+    setUserStats(prev => ({
+      ...prev,
+      ridesOffered: prev.ridesOffered + 1
+    }))
+
+    // Reset form
+    setOfferForm({
+      from: "",
+      to: "",
+      date: "",
+      time: "",
       seats: 1,
-      distance: "15 miles",
-    },
-  ]
+      price: 0,
+      description: ""
+    })
+
+    setIsSubmittingOffer(false)
+    showAlert('success', 'Your ride has been posted successfully!')
+  }
+
+  // Handle search filter changes
+  const updateSearchFilter = (field: keyof SearchFilters, value: string) => {
+    setSearchFilters(prev => ({ ...prev, [field]: value }))
+  }
+
+  // Handle offer form changes
+  const updateOfferForm = (field: keyof OfferRideForm, value: string | number) => {
+    setOfferForm(prev => ({ ...prev, [field]: value }))
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -93,7 +321,6 @@ export default function DashboardPage() {
               <Settings className="w-5 h-5" />
             </Button>
             <Avatar className="w-8 h-8">
-              <AvatarImage src="/placeholder.svg?height=32&width=32" />
               <AvatarFallback>JD</AvatarFallback>
             </Avatar>
           </div>
@@ -101,6 +328,19 @@ export default function DashboardPage() {
       </header>
 
       <div className="container mx-auto px-4 py-8">
+        {/* Alert */}
+        {alert && (
+          <Alert className={`mb-6 ${alert.type === 'success' ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+            {alert.type === 'success' ? 
+              <CheckCircle className="h-4 w-4 text-green-600" /> : 
+              <AlertCircle className="h-4 w-4 text-red-600" />
+            }
+            <AlertDescription className={alert.type === 'success' ? 'text-green-800' : 'text-red-800'}>
+              {alert.message}
+            </AlertDescription>
+          </Alert>
+        )}
+
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2">
@@ -139,8 +379,8 @@ export default function DashboardPage() {
                             id="from"
                             placeholder="Enter pickup location"
                             className="pl-10"
-                            value={searchFrom}
-                            onChange={(e) => setSearchFrom(e.target.value)}
+                            value={searchFilters.from}
+                            onChange={(e) => updateSearchFilter('from', e.target.value)}
                           />
                         </div>
                       </div>
@@ -152,8 +392,8 @@ export default function DashboardPage() {
                             id="to"
                             placeholder="Enter destination"
                             className="pl-10"
-                            value={searchTo}
-                            onChange={(e) => setSearchTo(e.target.value)}
+                            value={searchFilters.to}
+                            onChange={(e) => updateSearchFilter('to', e.target.value)}
                           />
                         </div>
                       </div>
@@ -162,20 +402,41 @@ export default function DashboardPage() {
                           <Label htmlFor="date">Date</Label>
                           <div className="relative">
                             <Calendar className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                            <Input id="date" type="date" className="pl-10" />
+                            <Input 
+                              id="date" 
+                              type="date" 
+                              className="pl-10"
+                              value={searchFilters.date}
+                              onChange={(e) => updateSearchFilter('date', e.target.value)}
+                              min={getCurrentDate()}
+                            />
                           </div>
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="time">Time</Label>
                           <div className="relative">
                             <Clock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                            <Input id="time" type="time" className="pl-10" />
+                            <Input 
+                              id="time" 
+                              type="time" 
+                              className="pl-10"
+                              value={searchFilters.time}
+                              onChange={(e) => updateSearchFilter('time', e.target.value)}
+                            />
                           </div>
                         </div>
                       </div>
-                      <Button className="w-full bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700">
-                        <Search className="w-4 h-4 mr-2" />
-                        Search Rides
+                      <Button 
+                        onClick={handleSearch}
+                        disabled={isSearching}
+                        className="w-full bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700"
+                      >
+                        {isSearching ? (
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                          <Search className="w-4 h-4 mr-2" />
+                        )}
+                        {isSearching ? 'Searching...' : 'Search Rides'}
                       </Button>
                     </div>
                   </CardContent>
@@ -183,66 +444,77 @@ export default function DashboardPage() {
 
                 {/* Available Rides */}
                 <div className="space-y-4">
-                  <h2 className="text-xl font-semibold text-gray-900">Available Rides</h2>
-                  {mockRides.map((ride) => (
-                    <Card key={ride.id} className="hover:shadow-lg transition-shadow cursor-pointer">
-                      <CardContent className="p-6">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-4">
-                            <Avatar className="w-12 h-12">
-                              <AvatarImage src={ride.avatar || "/placeholder.svg"} />
-                              <AvatarFallback>
-                                {ride.driver
-                                  .split(" ")
-                                  .map((n) => n[0])
-                                  .join("")}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <h3 className="font-semibold text-gray-900">{ride.driver}</h3>
-                              <div className="flex items-center space-x-1">
-                                <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                                <span className="text-sm text-gray-600">{ride.rating}</span>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-2xl font-bold text-green-600">{ride.price}</div>
-                            <div className="text-sm text-gray-500">{ride.distance}</div>
-                          </div>
-                        </div>
-
-                        <div className="mt-4 space-y-2">
-                          <div className="flex items-center space-x-2 text-sm text-gray-600">
-                            <MapPin className="w-4 h-4" />
-                            <span>
-                              {ride.from} → {ride.to}
-                            </span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-4 text-sm text-gray-600">
-                              <div className="flex items-center space-x-1">
-                                <Clock className="w-4 h-4" />
-                                <span>
-                                  {ride.time} • {ride.date}
-                                </span>
-                              </div>
-                              <div className="flex items-center space-x-1">
-                                <Users className="w-4 h-4" />
-                                <span>{ride.seats} seats left</span>
-                              </div>
-                            </div>
-                            <Button
-                              size="sm"
-                              className="bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700"
-                            >
-                              Request Ride
-                            </Button>
-                          </div>
-                        </div>
+                  <h2 className="text-xl font-semibold text-gray-900">
+                    Available Rides ({filteredRides.length})
+                  </h2>
+                  
+                  {filteredRides.length === 0 ? (
+                    <Card>
+                      <CardContent className="p-6 text-center">
+                        <p className="text-gray-500">No rides found matching your criteria. Try adjusting your search.</p>
                       </CardContent>
                     </Card>
-                  ))}
+                  ) : (
+                    filteredRides.map((ride) => (
+                      <Card key={ride.id} className="hover:shadow-lg transition-shadow">
+                        <CardContent className="p-6">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-4">
+                              <Avatar className="w-12 h-12">
+                                <AvatarFallback className="bg-gradient-to-r from-blue-100 to-green-100">
+                                  {getInitials(ride.driver)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <h3 className="font-semibold text-gray-900">{ride.driver}</h3>
+                                <div className="flex items-center space-x-1">
+                                  <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                                  <span className="text-sm text-gray-600">{ride.rating}</span>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-2xl font-bold text-green-600">{ride.price}</div>
+                              <div className="text-sm text-gray-500">{ride.distance}</div>
+                            </div>
+                          </div>
+
+                          <div className="mt-4 space-y-2">
+                            <div className="flex items-center space-x-2 text-sm text-gray-600">
+                              <MapPin className="w-4 h-4" />
+                              <span>{ride.from} → {ride.to}</span>
+                            </div>
+                            
+                            {ride.description && (
+                              <p className="text-sm text-gray-600 italic">{ride.description}</p>
+                            )}
+                            
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-4 text-sm text-gray-600">
+                                <div className="flex items-center space-x-1">
+                                  <Clock className="w-4 h-4" />
+                                  <span>{ride.time} • {ride.date === getCurrentDate() ? 'Today' : ride.date === getTomorrowDate() ? 'Tomorrow' : ride.date}</span>
+                                </div>
+                                <div className="flex items-center space-x-1">
+                                  <Users className="w-4 h-4" />
+                                  <span>{ride.seats} seats left</span>
+                                </div>
+                              </div>
+                              <Button
+                                size="sm"
+                                onClick={() => handleRequestRide(ride.id)}
+                                disabled={requestedRides.has(ride.id) || ride.seats === 0}
+                                className="bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 disabled:opacity-50"
+                              >
+                                {requestedRides.has(ride.id) ? 'Requested' : 
+                                 ride.seats === 0 ? 'Full' : 'Request Ride'}
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
                 </div>
               </TabsContent>
 
@@ -258,58 +530,127 @@ export default function DashboardPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid gap-4">
+                    <form onSubmit={handleOfferRide} className="grid gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="offer-from">From</Label>
+                        <Label htmlFor="offer-from">From *</Label>
                         <div className="relative">
                           <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                          <Input id="offer-from" placeholder="Enter starting location" className="pl-10" />
+                          <Input 
+                            id="offer-from" 
+                            placeholder="Enter starting location" 
+                            className="pl-10"
+                            value={offerForm.from}
+                            onChange={(e) => updateOfferForm('from', e.target.value)}
+                            required
+                          />
                         </div>
                       </div>
+                      
                       <div className="space-y-2">
-                        <Label htmlFor="offer-to">To</Label>
+                        <Label htmlFor="offer-to">To *</Label>
                         <div className="relative">
                           <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                          <Input id="offer-to" placeholder="Enter destination" className="pl-10" />
+                          <Input 
+                            id="offer-to" 
+                            placeholder="Enter destination" 
+                            className="pl-10"
+                            value={offerForm.to}
+                            onChange={(e) => updateOfferForm('to', e.target.value)}
+                            required
+                          />
                         </div>
                       </div>
+                      
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label htmlFor="offer-date">Date</Label>
+                          <Label htmlFor="offer-date">Date *</Label>
                           <div className="relative">
                             <Calendar className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                            <Input id="offer-date" type="date" className="pl-10" />
+                            <Input 
+                              id="offer-date" 
+                              type="date" 
+                              className="pl-10"
+                              value={offerForm.date}
+                              onChange={(e) => updateOfferForm('date', e.target.value)}
+                              min={getCurrentDate()}
+                              required
+                            />
                           </div>
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="offer-time">Time</Label>
+                          <Label htmlFor="offer-time">Time *</Label>
                           <div className="relative">
                             <Clock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                            <Input id="offer-time" type="time" className="pl-10" />
+                            <Input 
+                              id="offer-time" 
+                              type="time" 
+                              className="pl-10"
+                              value={offerForm.time}
+                              onChange={(e) => updateOfferForm('time', e.target.value)}
+                              required
+                            />
                           </div>
                         </div>
                       </div>
+                      
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label htmlFor="seats">Available Seats</Label>
+                          <Label htmlFor="seats">Available Seats *</Label>
                           <div className="relative">
                             <Users className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                            <Input id="seats" type="number" min="1" max="7" placeholder="1" className="pl-10" />
+                            <Input 
+                              id="seats" 
+                              type="number" 
+                              min="1" 
+                              max="7" 
+                              className="pl-10"
+                              value={offerForm.seats}
+                              onChange={(e) => updateOfferForm('seats', parseInt(e.target.value) || 1)}
+                              required
+                            />
                           </div>
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="price">Price per Person</Label>
+                          <Label htmlFor="price">Price per Person ($)</Label>
                           <div className="relative">
                             <DollarSign className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                            <Input id="price" type="number" min="0" step="0.50" placeholder="0.00" className="pl-10" />
+                            <Input 
+                              id="price" 
+                              type="number" 
+                              min="0" 
+                              step="0.50" 
+                              className="pl-10"
+                              value={offerForm.price}
+                              onChange={(e) => updateOfferForm('price', parseFloat(e.target.value) || 0)}
+                            />
                           </div>
                         </div>
                       </div>
-                      <Button className="w-full bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700">
-                        <Plus className="w-4 h-4 mr-2" />
-                        Offer Ride
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="description">Description (Optional)</Label>
+                        <Textarea
+                          id="description"
+                          placeholder="Add any additional details about your ride..."
+                          value={offerForm.description}
+                          onChange={(e) => updateOfferForm('description', e.target.value)}
+                          rows={3}
+                        />
+                      </div>
+                      
+                      <Button 
+                        type="submit"
+                        disabled={isSubmittingOffer}
+                        className="w-full bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700"
+                      >
+                        {isSubmittingOffer ? (
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                          <Plus className="w-4 h-4 mr-2" />
+                        )}
+                        {isSubmittingOffer ? 'Publishing...' : 'Offer Ride'}
                       </Button>
-                    </div>
+                    </form>
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -327,19 +668,19 @@ export default function DashboardPage() {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-600">Rides Taken</span>
-                    <Badge variant="secondary">12</Badge>
+                    <Badge variant="secondary">{userStats.ridesTaken}</Badge>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-600">Rides Offered</span>
-                    <Badge variant="secondary">8</Badge>
+                    <Badge variant="secondary">{userStats.ridesOffered}</Badge>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-600">Money Saved</span>
-                    <Badge className="bg-green-100 text-green-800">$156</Badge>
+                    <Badge className="bg-green-100 text-green-800">${userStats.moneySaved}</Badge>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-600">CO₂ Saved</span>
-                    <Badge className="bg-blue-100 text-blue-800">45 lbs</Badge>
+                    <Badge className="bg-blue-100 text-blue-800">{userStats.co2Saved} lbs</Badge>
                   </div>
                 </div>
               </CardContent>

@@ -4,8 +4,9 @@ import { Bell, Menu, Search } from "lucide-react"
 
 export function Header() {
   return (
-    <header className="absolute top-0 left-0 right-0 z-20 bg-white/90 backdrop-blur-sm border-b border-gray-200">
-      <div className="flex items-center justify-between px-6 py-4">
+    // Changed from absolute to fixed, added shadow and consistent height
+    <header className="fixed top-0 left-0 right-0 z-20 bg-white/90 backdrop-blur-sm border-b border-gray-200 shadow-sm h-20">
+      <div className="flex items-center justify-between px-6 py-4 h-full">
         {/* Logo */}
         <div className="flex items-center space-x-3">
           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
@@ -18,7 +19,7 @@ export function Header() {
         </div>
 
         {/* Search Bar */}
-        <div className="flex-1 max-w-md mx-8">
+        <div className="flex-1 max-w-md mx-8 hidden sm:block">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input

@@ -25,14 +25,27 @@ const RideMap = () => {
   const [map, setMap] = useState<any>(null)
   const [drivers, setDrivers] = useState<Driver[]>([])
   const [passengers, setPassengers] = useState<Passenger[]>([])
-  const [selectedRide, setSelectedRide] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
   const markersRef = useRef<any[]>([])
+  const infoWindowRef = useRef<any>(null)
   const directionsServiceRef = useRef<any>(null)
   const directionsRendererRef = useRef<any>(null)
 
   // Initialize map
   useEffect(() => {
     if (!mapRef.current || map) return;
+    if (!(window as any).google?.maps) {
+      setLoading(true)
+      const interval = setInterval(() => {
+        if ((window as any).google?.maps) {
+          clearInterval(interval)
+          setLoading(false)
+        }
+      }, 200)
+      return () => clearInterval(interval)
+    }
+    setLoading(false)
     const googleObj = (window as any).google;
     const googleMap = new googleObj.maps.Map(mapRef.current, {
       center: { lat: 37.7749, lng: -122.4194 },
@@ -45,8 +58,18 @@ const RideMap = () => {
       suppressMarkers: true,
     });
     generateSampleData(googleMap);
+    // Responsive map
+    const handleResize = () => googleObj.maps.event.trigger(googleMap, "resize");
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapRef, map]);
+
+  // Regenerate markers when data changes
+  useEffect(() => {
+    if (map) addMarkersToMap(drivers, passengers, map)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drivers, passengers, map])
 
   const generateSampleData = (googleMap?: any) => {
     const sampleDrivers: Driver[] = [
@@ -114,16 +137,18 @@ const RideMap = () => {
         icon: {
           url: "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(`
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="12" cy="12" r="10" fill="#3b82f6" stroke="white" stroke-width="2"/>
+              <circle cx="12" cy="12" r="10" fill="${selectedId === driver.id ? "#2563eb" : "#3b82f6"}" stroke="white" stroke-width="2"/>
               <path d="M8 12l2 2 6-6" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           `),
           scaledSize: new (window as any).google.maps.Size(24, 24),
         },
         title: `${driver.name} - ${driver.vehicle}`,
+        zIndex: selectedId === driver.id ? 100 : 1,
       })
 
       marker.addListener("click", () => {
+        setSelectedId(driver.id)
         showDriverInfo(driver)
       })
 
@@ -139,16 +164,18 @@ const RideMap = () => {
         icon: {
           url: "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(`
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="12" cy="12" r="10" fill="#10b981" stroke="white" stroke-width="2"/>
+              <circle cx="12" cy="12" r="10" fill="${selectedId === passenger.id ? "#059669" : "#10b981"}" stroke="white" stroke-width="2"/>
               <path d="M12 8v8M8 12h8" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           `),
           scaledSize: new (window as any).google.maps.Size(24, 24),
         },
         title: `${passenger.name} - ${passenger.status}`,
+        zIndex: selectedId === passenger.id ? 100 : 1,
       })
 
       marker.addListener("click", () => {
+        setSelectedId(passenger.id)
         showPassengerInfo(passenger)
       })
 
@@ -157,6 +184,8 @@ const RideMap = () => {
   }
 
   const showDriverInfo = (driver: Driver) => {
+    // Close previous info window
+    if (infoWindowRef.current) infoWindowRef.current.close()
     const infoWindow = new (window as any).google.maps.InfoWindow({
       content: `
         <div class="p-4 max-w-sm">
@@ -172,7 +201,7 @@ const RideMap = () => {
         </div>
       `,
     })
-
+    infoWindowRef.current = infoWindow
     const marker = markersRef.current.find(m => m.getTitle()?.includes(driver.name))
     if (marker && map) {
       infoWindow.open(map, marker)
@@ -180,6 +209,8 @@ const RideMap = () => {
   }
 
   const showPassengerInfo = (passenger: Passenger) => {
+    // Close previous info window
+    if (infoWindowRef.current) infoWindowRef.current.close()
     const infoWindow = new (window as any).google.maps.InfoWindow({
       content: `
         <div class="p-4 max-w-sm">
@@ -191,7 +222,7 @@ const RideMap = () => {
         </div>
       `,
     })
-
+    infoWindowRef.current = infoWindow
     const marker = markersRef.current.find(m => m.getTitle()?.includes(passenger.name))
     if (marker && map) {
       infoWindow.open(map, marker)
@@ -216,7 +247,12 @@ const RideMap = () => {
   }
 
   return (
-    <div className="map-container" style={{ width: "100%", height: "100%", position: "relative" }}>
+    <div className="map-container" style={{ width: "100%", height: "100%", position: "relative", minHeight: 400 }}>
+      {loading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-20">
+          <span className="text-gray-500">Loading map...</span>
+        </div>
+      )}
       <div ref={mapRef} style={{ width: "100%", height: "100%" }} />
       {/* Map controls overlay */}
       <div className="absolute top-4 left-4 z-10 space-y-2">

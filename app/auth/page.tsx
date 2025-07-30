@@ -1,27 +1,148 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { MapPin, Mail, Lock, User, Phone } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { MapPin, Mail, Lock, User, Phone, AlertCircle } from "lucide-react"
+
+interface SignInFormData {
+  email: string
+  password: string
+}
+
+interface SignUpFormData {
+  firstName: string
+  lastName: string
+  email: string
+  phone: string
+  password: string
+}
 
 export default function AuthPage() {
+  const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
+  const [signInData, setSignInData] = useState<SignInFormData>({
+    email: "",
+    password: ""
+  })
+  const [signUpData, setSignUpData] = useState<SignUpFormData>({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    password: ""
+  })
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSignInChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSignInData(prev => ({
+      ...prev,
+      [e.target.name]: e.target.value
+    }))
+    setError("") // Clear error when user types
+  }
+
+  const handleSignUpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSignUpData(prev => ({
+      ...prev,
+      [e.target.name]: e.target.value
+    }))
+    setError("") // Clear error when user types
+  }
+
+  const validateEmail = (email: string) => {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    return re.test(email)
+  }
+
+  const validatePhone = (phone: string) => {
+    const re = /^[\+]?[1-9][\d]{0,15}$/
+    return re.test(phone.replace(/\s/g, ''))
+  }
+
+  const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError("")
+    
+    // Validation
+    if (!validateEmail(signInData.email)) {
+      setError("Please enter a valid email address")
+      return
+    }
+    
+    if (signInData.password.length < 6) {
+      setError("Password must be at least 6 characters")
+      return
+    }
+
     setIsLoading(true)
-    // Simulate authentication
-    setTimeout(() => {
+    
+    try {
+      // TODO: Replace with Firebase Auth
+      console.log("Sign in attempt:", signInData)
+      
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      
+      // For now, simulate success
+      router.push("/dashboard")
+      
+    } catch (error: any) {
+      setError(error.message || "Failed to sign in. Please try again.")
+    } finally {
       setIsLoading(false)
-      window.location.href = "/dashboard"
-    }, 2000)
+    }
+  }
+
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError("")
+    
+    // Validation
+    if (!signUpData.firstName.trim() || !signUpData.lastName.trim()) {
+      setError("First and last name are required")
+      return
+    }
+    
+    if (!validateEmail(signUpData.email)) {
+      setError("Please enter a valid email address")
+      return
+    }
+    
+    if (!validatePhone(signUpData.phone)) {
+      setError("Please enter a valid phone number")
+      return
+    }
+    
+    if (signUpData.password.length < 6) {
+      setError("Password must be at least 6 characters")
+      return
+    }
+
+    setIsLoading(true)
+    
+    try {
+      // TODO: Replace with Firebase Auth
+      console.log("Sign up attempt:", signUpData)
+      
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      
+      // For now, simulate success
+      router.push("/dashboard")
+      
+    } catch (error: any) {
+      setError(error.message || "Failed to create account. Please try again.")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -38,6 +159,14 @@ export default function AuthPage() {
           <p className="text-gray-600">Join the community of smart travelers</p>
         </div>
 
+        {/* Error Alert */}
+        {error && (
+          <Alert className="mb-4 border-red-200 bg-red-50">
+            <AlertCircle className="h-4 w-4 text-red-600" />
+            <AlertDescription className="text-red-700">{error}</AlertDescription>
+          </Alert>
+        )}
+
         <Tabs defaultValue="signin" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="signin">Sign In</TabsTrigger>
@@ -51,19 +180,37 @@ export default function AuthPage() {
                 <CardDescription>Sign in to your RideMatch account to start finding rides.</CardDescription>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleSignIn} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
+                    <Label htmlFor="signin-email">Email</Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                      <Input id="email" type="email" placeholder="your@email.com" className="pl-10" required />
+                      <Input 
+                        id="signin-email" 
+                        name="email"
+                        type="email" 
+                        placeholder="your@email.com" 
+                        className="pl-10" 
+                        value={signInData.email}
+                        onChange={handleSignInChange}
+                        required 
+                      />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="password">Password</Label>
+                    <Label htmlFor="signin-password">Password</Label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                      <Input id="password" type="password" placeholder="••••••••" className="pl-10" required />
+                      <Input 
+                        id="signin-password" 
+                        name="password"
+                        type="password" 
+                        placeholder="••••••••" 
+                        className="pl-10" 
+                        value={signInData.password}
+                        onChange={handleSignInChange}
+                        required 
+                      />
                     </div>
                   </div>
                   <Button
@@ -90,39 +237,81 @@ export default function AuthPage() {
                 <CardDescription>Join RideMatch and start sharing rides with your community.</CardDescription>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleSignUp} className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="firstName">First Name</Label>
                       <div className="relative">
                         <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                        <Input id="firstName" placeholder="John" className="pl-10" required />
+                        <Input 
+                          id="firstName" 
+                          name="firstName"
+                          placeholder="John" 
+                          className="pl-10" 
+                          value={signUpData.firstName}
+                          onChange={handleSignUpChange}
+                          required 
+                        />
                       </div>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="lastName">Last Name</Label>
-                      <Input id="lastName" placeholder="Doe" required />
+                      <Input 
+                        id="lastName" 
+                        name="lastName"
+                        placeholder="Doe" 
+                        value={signUpData.lastName}
+                        onChange={handleSignUpChange}
+                        required 
+                      />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
+                    <Label htmlFor="signup-email">Email</Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                      <Input id="email" type="email" placeholder="your@email.com" className="pl-10" required />
+                      <Input 
+                        id="signup-email" 
+                        name="email"
+                        type="email" 
+                        placeholder="your@email.com" 
+                        className="pl-10" 
+                        value={signUpData.email}
+                        onChange={handleSignUpChange}
+                        required 
+                      />
                     </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="phone">Phone Number</Label>
                     <div className="relative">
                       <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                      <Input id="phone" type="tel" placeholder="+1 (555) 123-4567" className="pl-10" required />
+                      <Input 
+                        id="phone" 
+                        name="phone"
+                        type="tel" 
+                        placeholder="+1 (555) 123-4567" 
+                        className="pl-10" 
+                        value={signUpData.phone}
+                        onChange={handleSignUpChange}
+                        required 
+                      />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="password">Password</Label>
+                    <Label htmlFor="signup-password">Password</Label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                      <Input id="password" type="password" placeholder="••••••••" className="pl-10" required />
+                      <Input 
+                        id="signup-password" 
+                        name="password"
+                        type="password" 
+                        placeholder="••••••••" 
+                        className="pl-10" 
+                        value={signUpData.password}
+                        onChange={handleSignUpChange}
+                        required 
+                      />
                     </div>
                   </div>
                   <Button

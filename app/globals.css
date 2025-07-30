@@ -6,6 +6,68 @@
   .text-balance {
     text-wrap: balance;
   }
+  
+  /* Custom utilities for RideMatch */
+  .gradient-brand {
+    @apply bg-gradient-to-r from-blue-600 to-green-600;
+  }
+  
+  .gradient-brand-hover {
+    @apply hover:from-blue-700 hover:to-green-700;
+  }
+  
+  .gradient-bg {
+    @apply bg-gradient-to-br from-blue-50 to-green-50;
+  }
+  
+  .gradient-bg-dark {
+    @apply dark:bg-gradient-to-br dark:from-slate-900 dark:to-slate-800;
+  }
+  
+  /* Map container utilities */
+  .map-container {
+    @apply relative w-full h-full min-h-[400px] rounded-lg overflow-hidden;
+  }
+  
+  .map-overlay {
+    @apply absolute inset-0 pointer-events-none z-10;
+  }
+  
+  /* Ride card animations */
+  .ride-card-hover {
+    @apply transition-all duration-200 hover:shadow-lg hover:-translate-y-1;
+  }
+  
+  /* Loading animations */
+  .pulse-soft {
+    animation: pulse-soft 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  
+  @keyframes pulse-soft {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.7;
+    }
+  }
+  
+  /* Status indicators */
+  .status-active {
+    @apply bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400;
+  }
+  
+  .status-pending {
+    @apply bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400;
+  }
+  
+  .status-completed {
+    @apply bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400;
+  }
+  
+  .status-cancelled {
+    @apply bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400;
+  }
 }
 
 @layer base {
@@ -43,7 +105,15 @@
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+    
+    /* Custom RideMatch colors */
+    --brand-primary: 220 100% 50%;
+    --brand-secondary: 142 76% 36%;
+    --success: 142 76% 36%;
+    --warning: 38 92% 50%;
+    --info: 217 91% 60%;
   }
+  
   .dark {
     --background: 0 0% 3.9%;
     --foreground: 0 0% 98%;
@@ -77,6 +147,13 @@
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+    
+    /* Custom RideMatch colors for dark mode */
+    --brand-primary: 220 100% 60%;
+    --brand-secondary: 142 76% 46%;
+    --success: 142 76% 46%;
+    --warning: 38 92% 60%;
+    --info: 217 91% 70%;
   }
 }
 
@@ -84,7 +161,97 @@
   * {
     @apply border-border;
   }
+  
   body {
     @apply bg-background text-foreground;
+  }
+  
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  /* Custom scrollbar for webkit browsers */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-muted;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/30 rounded-full;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/50;
+  }
+  
+  /* Focus styles for accessibility */
+  .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2;
+  }
+  
+  /* Default focus styles */
+  button:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2;
+  }
+}
+
+@layer components {
+  /* Reusable component styles */
+  .btn-primary {
+    @apply bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 text-white font-medium px-4 py-2 rounded-lg transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  
+  .btn-secondary {
+    @apply bg-secondary text-secondary-foreground hover:bg-secondary/80 font-medium px-4 py-2 rounded-lg transition-all duration-200 focus:ring-2 focus:ring-ring focus:ring-offset-2;
+  }
+  
+  .card-elevated {
+    @apply bg-card border border-border rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200;
+  }
+  
+  .input-field {
+    @apply flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  
+  /* Loading states */
+  .skeleton {
+    @apply animate-pulse bg-muted rounded;
+  }
+  
+  /* Map specific styles */
+  .google-map {
+    @apply w-full h-full rounded-lg;
+  }
+  
+  .map-marker {
+    @apply absolute transform -translate-x-1/2 -translate-y-full;
+  }
+  
+  /* Ride status badges */
+  .badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors;
+  }
+  
+  .badge-success {
+    @apply bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400;
+  }
+  
+  .badge-warning {
+    @apply bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400;
+  }
+  
+  .badge-error {
+    @apply bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400;
+  }
+  
+  .badge-info {
+    @apply bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400;
   }
 }

@@ -24,6 +24,12 @@ export function RidePanel() {
   const [activeTab, setActiveTab] = useState<"search" | "rides" | "profile">("search")
   const [isSearching, setIsSearching] = useState(false)
   const [currentRide, setCurrentRide] = useState<Ride | null>(null)
+  const [pickup, setPickup] = useState("")
+  const [destination, setDestination] = useState("")
+  const [error, setError] = useState("")
+  const [profile, setProfile] = useState({ name: "John Smith", email: "john.smith@email.com" })
+  const [editingProfile, setEditingProfile] = useState(false)
+  const [profileDraft, setProfileDraft] = useState(profile)
 
   const sampleRides: Ride[] = [
     {
@@ -61,12 +67,28 @@ export function RidePanel() {
   ]
 
   const handleSearchRide = () => {
+    setError("")
+    if (!pickup.trim() || !destination.trim()) {
+      setError("Please enter both pickup and destination.")
+      return
+    }
     setIsSearching(true)
     // Simulate search
     setTimeout(() => {
       setIsSearching(false)
       setCurrentRide(sampleRides[0])
     }, 2000)
+  }
+
+  const handleAcceptRide = () => {
+    setCurrentRide(null)
+    setPickup("")
+    setDestination("")
+  }
+
+  const handleProfileSave = () => {
+    setProfile(profileDraft)
+    setEditingProfile(false)
   }
 
   return (
@@ -120,38 +142,57 @@ export function RidePanel() {
           <div className="p-6">
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="pickup">
                   Pickup Location
                 </label>
                 <div className="relative">
                   <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                   <input
+                    id="pickup"
                     type="text"
                     placeholder="Enter pickup address"
+                    value={pickup}
+                    onChange={e => setPickup(e.target.value)}
                     className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    aria-label="Pickup Location"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="destination">
                   Destination
                 </label>
                 <div className="relative">
                   <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                   <input
+                    id="destination"
                     type="text"
                     placeholder="Enter destination"
+                    value={destination}
+                    onChange={e => setDestination(e.target.value)}
                     className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    aria-label="Destination"
                   />
                 </div>
               </div>
 
+              {error && (
+                <div className="text-red-600 text-sm">{error}</div>
+              )}
+
               <button
                 onClick={handleSearchRide}
                 disabled={isSearching}
-                className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                aria-busy={isSearching}
               >
+                {isSearching && (
+                  <svg className="animate-spin mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                  </svg>
+                )}
                 {isSearching ? "Searching..." : "Find Available Drivers"}
               </button>
             </div>
@@ -182,7 +223,11 @@ export function RidePanel() {
                     <span className="text-sm ml-1">{currentRide.driver.rating}</span>
                   </div>
                 </div>
-                <button className="w-full mt-3 bg-green-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-green-700">
+                <button
+                  className="w-full mt-3 bg-green-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-green-700"
+                  onClick={handleAcceptRide}
+                  aria-label="Accept Ride"
+                >
                   Accept Ride
                 </button>
               </div>
@@ -232,8 +277,29 @@ export function RidePanel() {
                   <Users className="w-6 h-6 text-blue-600" />
                 </div>
                 <div>
-                  <h4 className="font-medium">John Smith</h4>
-                  <p className="text-sm text-gray-600">john.smith@email.com</p>
+                  {editingProfile ? (
+                    <>
+                      <input
+                        type="text"
+                        className="block w-full border border-gray-300 rounded px-2 py-1 mb-1"
+                        value={profileDraft.name}
+                        onChange={e => setProfileDraft({ ...profileDraft, name: e.target.value })}
+                        aria-label="Edit Name"
+                      />
+                      <input
+                        type="email"
+                        className="block w-full border border-gray-300 rounded px-2 py-1"
+                        value={profileDraft.email}
+                        onChange={e => setProfileDraft({ ...profileDraft, email: e.target.value })}
+                        aria-label="Edit Email"
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <h4 className="font-medium">{profile.name}</h4>
+                      <p className="text-sm text-gray-600">{profile.email}</p>
+                    </>
+                  )}
                 </div>
               </div>
               
@@ -250,6 +316,29 @@ export function RidePanel() {
                   <Star className="w-5 h-5 text-gray-400" />
                   <span>My Ratings</span>
                 </button>
+                {editingProfile ? (
+                  <div className="flex space-x-2">
+                    <button
+                      className="flex-1 bg-blue-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-blue-700"
+                      onClick={handleProfileSave}
+                    >
+                      Save
+                    </button>
+                    <button
+                      className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg text-sm font-medium hover:bg-gray-300"
+                      onClick={() => { setEditingProfile(false); setProfileDraft(profile); }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    className="w-full bg-blue-50 text-blue-700 py-2 rounded-lg text-sm font-medium hover:bg-blue-100"
+                    onClick={() => setEditingProfile(true)}
+                  >
+                    Edit Profile
+                  </button>
+                )}
               </div>
             </div>
           </div>
