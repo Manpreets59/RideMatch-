@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -27,7 +28,10 @@ import {
   CheckCircle,
   AlertCircle,
   Loader2,
+  LogOut,
 } from "lucide-react"
+import { useAuth } from "@/contexts/AuthContext"
+import { useToast } from "@/hooks/use-toast"
 
 interface Ride {
   id: number
@@ -70,6 +74,17 @@ interface OfferRideForm {
 }
 
 export default function DashboardPage() {
+  const { user, userProfile, logout, loading: authLoading } = useAuth()
+  const router = useRouter()
+  const { toast } = useToast()
+
+  // Redirect to auth if not logged in
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/auth')
+    }
+  }, [user, authLoading, router])
+
   // State management
   const [searchFilters, setSearchFilters] = useState<SearchFilters>({
     from: "",
@@ -98,7 +113,6 @@ export default function DashboardPage() {
   
   const [isSearching, setIsSearching] = useState(false)
   const [isSubmittingOffer, setIsSubmittingOffer] = useState(false)
-  const [alert, setAlert] = useState<{type: 'success' | 'error', message: string} | null>(null)
   const [requestedRides, setRequestedRides] = useState<Set<number>>(new Set())
 
   // Initialize with mock data
@@ -165,11 +179,6 @@ export default function DashboardPage() {
     return name.split(' ').map(n => n[0]).join('')
   }
 
-  function showAlert(type: 'success' | 'error', message: string) {
-    setAlert({ type, message })
-    setTimeout(() => setAlert(null), 5000)
-  }
-
   // Filter rides based on search criteria
   const filteredRides = useMemo(() => {
     return rides.filter(ride => {
@@ -186,7 +195,11 @@ export default function DashboardPage() {
   // Handle search
   const handleSearch = async () => {
     if (!searchFilters.from && !searchFilters.to) {
-      showAlert('error', 'Please enter at least a pickup or destination location')
+      toast({
+        title: "Search Error",
+        description: "Please enter at least a pickup or destination location",
+        variant: "destructive"
+      })
       return
     }
 
@@ -196,13 +209,20 @@ export default function DashboardPage() {
     await new Promise(resolve => setTimeout(resolve, 1000))
     
     setIsSearching(false)
-    showAlert('success', `Found ${filteredRides.length} rides matching your criteria`)
+    toast({
+      title: "Search Complete",
+      description: `Found ${filteredRides.length} rides matching your criteria`
+    })
   }
 
   // Handle ride request
   const handleRequestRide = async (rideId: number) => {
     if (requestedRides.has(rideId)) {
-      showAlert('error', 'You have already requested this ride')
+      toast({
+        title: "Already Requested",
+        description: "You have already requested this ride",
+        variant: "destructive"
+      })
       return
     }
 
@@ -221,7 +241,10 @@ export default function DashboardPage() {
       ridesTaken: prev.ridesTaken + 1
     }))
 
-    showAlert('success', 'Ride request sent! The driver will be notified.')
+    toast({
+      title: "Ride Requested",
+      description: "The driver will be notified of your request."
+    })
   }
 
   // Handle offer ride form submission
@@ -230,17 +253,29 @@ export default function DashboardPage() {
     
     // Validation
     if (!offerForm.from || !offerForm.to || !offerForm.date || !offerForm.time) {
-      showAlert('error', 'Please fill in all required fields')
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields",
+        variant: "destructive"
+      })
       return
     }
 
     if (offerForm.seats < 1 || offerForm.seats > 7) {
-      showAlert('error', 'Please enter a valid number of seats (1-7)')
+      toast({
+        title: "Validation Error",
+        description: "Please enter a valid number of seats (1-7)",
+        variant: "destructive"
+      })
       return
     }
 
     if (offerForm.price < 0) {
-      showAlert('error', 'Price cannot be negative')
+      toast({
+        title: "Validation Error",
+        description: "Price cannot be negative",
+        variant: "destructive"
+      })
       return
     }
 
@@ -252,7 +287,7 @@ export default function DashboardPage() {
     // Add new ride to list
     const newRide: Ride = {
       id: Date.now(),
-      driver: "You",
+      driver: userProfile?.firstName + " " + userProfile?.lastName || "You",
       rating: 5.0,
       from: offerForm.from,
       to: offerForm.to,
@@ -285,7 +320,10 @@ export default function DashboardPage() {
     })
 
     setIsSubmittingOffer(false)
-    showAlert('success', 'Your ride has been posted successfully!')
+    toast({
+      title: "Ride Posted",
+      description: "Your ride has been posted successfully!"
+    })
   }
 
   // Handle search filter changes
@@ -296,6 +334,37 @@ export default function DashboardPage() {
   // Handle offer form changes
   const updateOfferForm = (field: keyof OfferRideForm, value: string | number) => {
     setOfferForm(prev => ({ ...prev, [field]: value }))
+  }
+
+  // Handle logout
+  const handleLogout = async () => {
+    try {
+      await logout()
+      router.push('/')
+    } catch (error) {
+      toast({
+        title: "Logout Error",
+        description: "Failed to logout. Please try again.",
+        variant: "destructive"
+      })
+    }
+  }
+
+  // Show loading while checking auth
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="flex flex-col items-center">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-600 mb-3" />
+          <span className="text-gray-600">Loading...</span>
+        </div>
+      </div>
+    )
+  }
+
+  // Don't render if not authenticated
+  if (!user) {
+    return null
   }
 
   return (
@@ -320,32 +389,26 @@ export default function DashboardPage() {
             <Button variant="ghost" size="icon">
               <Settings className="w-5 h-5" />
             </Button>
+            <Button variant="ghost" size="icon" onClick={handleLogout}>
+              <LogOut className="w-5 h-5" />
+            </Button>
             <Avatar className="w-8 h-8">
-              <AvatarFallback>JD</AvatarFallback>
+              <AvatarFallback>
+                {userProfile ? getInitials(userProfile.firstName + " " + userProfile.lastName) : "U"}
+              </AvatarFallback>
             </Avatar>
           </div>
         </div>
       </header>
 
       <div className="container mx-auto px-4 py-8">
-        {/* Alert */}
-        {alert && (
-          <Alert className={`mb-6 ${alert.type === 'success' ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
-            {alert.type === 'success' ? 
-              <CheckCircle className="h-4 w-4 text-green-600" /> : 
-              <AlertCircle className="h-4 w-4 text-red-600" />
-            }
-            <AlertDescription className={alert.type === 'success' ? 'text-green-800' : 'text-red-800'}>
-              {alert.message}
-            </AlertDescription>
-          </Alert>
-        )}
-
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2">
             <div className="mb-8">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Find Your Ride</h1>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                Welcome back, {userProfile?.firstName || 'User'}!
+              </h1>
               <p className="text-gray-600">Discover rides along your route or offer one to help others.</p>
             </div>
 

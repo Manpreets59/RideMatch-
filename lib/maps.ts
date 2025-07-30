@@ -9,6 +9,11 @@ const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
  *
  * Make sure these APIs are enabled in your Google Cloud Console for your project.
  * https://console.cloud.google.com/apis/library
+ *
+ * To use your Maps JavaScript API key in the frontend, set it in your .env file:
+ * NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=AIzaSyBiNWlkELE-wLt5t2kxaqS3kIGcHGuUASM
+ *
+ * Never commit your API key directly in code. Use environment variables instead.
  */
 
 export async function geocodeAddress(address: string) {

@@ -1,8 +1,9 @@
-import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAnalytics, isSupported } from "firebase/analytics";
-import { getAuth, connectAuthEmulator } from "firebase/auth";
-import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
-import { getPerformance } from "firebase/performance";
+// lib/firebase.ts
+import { initializeApp, getApps } from 'firebase/app'
+import { getAuth, connectAuthEmulator } from 'firebase/auth'
+import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore'
+import { getStorage, connectStorageEmulator } from 'firebase/storage'
+import { getAnalytics, isSupported } from 'firebase/analytics'
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -11,47 +12,26 @@ const firebaseConfig = {
   storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
-};
-
-// Initialize Firebase
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-
-// Initialize Analytics conditionally (only in browser)
-const analytics =
-  typeof window !== "undefined"
-    ? isSupported().then((yes) => (yes ? getAnalytics(app) : null))
-    : null;
-
-// Initialize other services
-const auth = getAuth(app);
-const db = getFirestore(app);
-
-// Initialize Performance monitoring in browser only
-const performance = typeof window !== "undefined" ? getPerformance(app) : null;
-
-// Development environment setup
-if (process.env.NODE_ENV === "development") {
-  if (auth) connectAuthEmulator(auth, "http://localhost:9099");
-  if (db) connectFirestoreEmulator(db, "localhost", 8080);
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 }
 
-export { app, analytics, auth, db, performance };
+// Initialize Firebase
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0]
 
-// lib/firebase.js
-// import { initializeApp, getApps, getApp } from "firebase/app";
-// import { getFirestore } from "firebase/firestore";
+// Initialize Firebase services
+export const auth = getAuth(app)
+export const db = getFirestore(app)
+export const storage = getStorage(app)
 
-// const firebaseConfig = {
-//   apiKey: "YOUR_API_KEY",
-//   authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-//   projectId: "YOUR_PROJECT_ID",
-//   storageBucket: "YOUR_PROJECT_ID.appspot.com",
-//   messagingSenderId: "YOUR_SENDER_ID",
-//   appId: "YOUR_APP_ID"
-// };
+// Initialize Analytics (only on client side)
+export const analytics = typeof window !== 'undefined' && isSupported().then(yes => yes ? getAnalytics(app) : null)
 
-// const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-// const db = getFirestore(app);
+// Connect to emulators in development (optional)
+if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
+  // Uncomment these lines if you're using Firebase emulators
+  // connectAuthEmulator(auth, 'http://localhost:9099')
+  // connectFirestoreEmulator(db, 'localhost', 8080)
+  // connectStorageEmulator(storage, 'localhost', 9199)
+}
 
-// export { db };
+export default app

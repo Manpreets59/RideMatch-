@@ -2,6 +2,8 @@ import type { Metadata } from 'next'
 import { GeistSans } from 'geist/font/sans'
 import { GeistMono } from 'geist/font/mono'
 import './globals.css'
+import { AuthProvider } from '@/contexts/AuthContext'
+import { Toaster } from '@/components/ui/toaster'
 
 export const metadata: Metadata = {
   title: {
@@ -117,10 +119,16 @@ export default function RootLayout({
           Skip to main content
         </a>
         
-        {/* Main content wrapper */}
-        <div id="main-content" className="relative">
-          {children}
-        </div>
+        {/* Wrap everything in AuthProvider */}
+        <AuthProvider>
+          {/* Main content wrapper */}
+          <div id="main-content" className="relative">
+            {children}
+          </div>
+          
+          {/* Toast notifications */}
+          <Toaster />
+        </AuthProvider>
         
         {/* Global loading/error boundary could go here */}
         <div id="modal-root" />

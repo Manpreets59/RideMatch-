@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { MapPin, Mail, Lock, User, Phone, AlertCircle } from "lucide-react"
+import { useAuth } from "@/contexts/AuthContext"
 
 interface SignInFormData {
   email: string
@@ -27,6 +28,7 @@ interface SignUpFormData {
 
 export default function AuthPage() {
   const router = useRouter()
+  const { signIn, signUp } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [signInData, setSignInData] = useState<SignInFormData>({
@@ -85,15 +87,8 @@ export default function AuthPage() {
     setIsLoading(true)
     
     try {
-      // TODO: Replace with Firebase Auth
-      console.log("Sign in attempt:", signInData)
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      
-      // For now, simulate success
+      await signIn(signInData.email, signInData.password)
       router.push("/dashboard")
-      
     } catch (error: any) {
       setError(error.message || "Failed to sign in. Please try again.")
     } finally {
@@ -129,15 +124,14 @@ export default function AuthPage() {
     setIsLoading(true)
     
     try {
-      // TODO: Replace with Firebase Auth
-      console.log("Sign up attempt:", signUpData)
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      
-      // For now, simulate success
+      await signUp(
+        signUpData.email,
+        signUpData.password,
+        signUpData.firstName,
+        signUpData.lastName,
+        signUpData.phone
+      )
       router.push("/dashboard")
-      
     } catch (error: any) {
       setError(error.message || "Failed to create account. Please try again.")
     } finally {
@@ -194,6 +188,7 @@ export default function AuthPage() {
                         value={signInData.email}
                         onChange={handleSignInChange}
                         required 
+                        disabled={isLoading}
                       />
                     </div>
                   </div>
@@ -210,6 +205,7 @@ export default function AuthPage() {
                         value={signInData.password}
                         onChange={handleSignInChange}
                         required 
+                        disabled={isLoading}
                       />
                     </div>
                   </div>
@@ -251,6 +247,7 @@ export default function AuthPage() {
                           value={signUpData.firstName}
                           onChange={handleSignUpChange}
                           required 
+                          disabled={isLoading}
                         />
                       </div>
                     </div>
@@ -263,6 +260,7 @@ export default function AuthPage() {
                         value={signUpData.lastName}
                         onChange={handleSignUpChange}
                         required 
+                        disabled={isLoading}
                       />
                     </div>
                   </div>
@@ -279,6 +277,7 @@ export default function AuthPage() {
                         value={signUpData.email}
                         onChange={handleSignUpChange}
                         required 
+                        disabled={isLoading}
                       />
                     </div>
                   </div>
@@ -295,6 +294,7 @@ export default function AuthPage() {
                         value={signUpData.phone}
                         onChange={handleSignUpChange}
                         required 
+                        disabled={isLoading}
                       />
                     </div>
                   </div>
@@ -311,6 +311,7 @@ export default function AuthPage() {
                         value={signUpData.password}
                         onChange={handleSignUpChange}
                         required 
+                        disabled={isLoading}
                       />
                     </div>
                   </div>
