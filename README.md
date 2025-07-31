@@ -1,121 +1,34 @@
 # RideMatch - Smart Ride Sharing Platform
 
-## 🚗 Project Overview
+A modern, full-stack ride-sharing application built with Next.js, Firebase, and Google Maps API. Connect with travelers heading your way for smart, affordable, and eco-friendly transportation.
 
-RideMatch is an innovative ride-sharing application that leverages Google Maps Platform to create a seamless, real-time matching system between drivers and passengers. Built with Next.js, TypeScript, and Google Maps Platform APIs, this application demonstrates advanced geolocation services, real-time tracking, and intelligent route optimization.
+## 🚀 Features
 
-## 🎯 Project Inspiration & History
+- **User Authentication** - Secure signup/login with Firebase Auth
+- **Real-time Ride Matching** - Find and offer rides in real-time
+- **Interactive Maps** - Google Maps integration for location services
+- **Responsive Design** - Beautiful UI that works on all devices
+- **Real-time Notifications** - Stay updated with ride requests and messages
+- **Eco-friendly Tracking** - Monitor your carbon footprint reduction
+- **Rating System** - Build trust with driver/passenger ratings
 
-### The Problem
-Traditional ride-sharing platforms often suffer from:
-- Inefficient driver-passenger matching
-- Poor route optimization
-- Limited real-time visibility
-- Lack of integrated mapping solutions
+## 🛠️ Tech Stack
 
-### The Solution
-RideMatch addresses these challenges by:
-- **Real-time Geolocation**: Using Google Maps Platform for precise location tracking
-- **Intelligent Matching**: Algorithm-based driver-passenger pairing
-- **Route Optimization**: Google Maps Directions API for optimal routes
-- **Interactive Mapping**: Rich, responsive map interface with custom markers
+- **Frontend**: Next.js 15, React 19, TypeScript
+- **Styling**: Tailwind CSS, Radix UI Components
+- **Backend**: Firebase (Auth, Firestore, Storage)
+- **Maps**: Google Maps JavaScript API
+- **State Management**: React Context API
+- **Deployment**: Vercel (recommended)
 
-## 🗺️ Google Maps Platform Integration
+## 📋 Prerequisites
 
-### APIs & SDKs Used
-
-1. **Google Maps JavaScript API**
-   - Interactive map rendering
-   - Custom markers for drivers and passengers
-   - Real-time location updates
-
-2. **Google Maps Directions API**
-   - Route calculation and optimization
-   - Turn-by-turn navigation
-   - Traffic-aware routing
-
-3. **Google Maps Places API**
-   - Address autocomplete
-   - Location search and validation
-   - Place details and reviews
-
-4. **Google Maps Geometry Library**
-   - Distance calculations
-   - Geofencing capabilities
-   - Spatial analysis
-
-### Key Features Implemented
-
-#### 🎯 Real-Time Location Tracking
-```typescript
-// Custom markers for drivers and passengers
-const driverMarker = new google.maps.Marker({
-  position: driver.position,
-  map,
-  icon: customDriverIcon,
-  title: `${driver.name} - ${driver.vehicle}`
-})
-```
-
-#### 🛣️ Route Optimization
-```typescript
-// Calculate optimal routes using Directions API
-directionsService.route({
-  origin: pickupLocation,
-  destination: dropoffLocation,
-  travelMode: google.maps.TravelMode.DRIVING
-}, (result, status) => {
-  if (status === "OK") {
-    directionsRenderer.setDirections(result)
-  }
-})
-```
-
-#### 📍 Interactive Mapping
-- Custom styled markers for different user types
-- Info windows with detailed user information
-- Real-time ETA calculations
-- Traffic-aware routing
-
-## 🏆 Awards Criteria Alignment
-
-### ✅ Functionality & Scalability
-- **Multi-region Support**: Built to work globally with Google Maps coverage
-- **Scalable Architecture**: Next.js with TypeScript for enterprise-grade performance
-- **Real-time Updates**: WebSocket-ready architecture for live location updates
-- **Mobile Responsive**: Optimized for all device types
-
-### ✅ Purpose & Problem Solving
-- **Efficient Matching**: Reduces wait times through intelligent algorithms
-- **Cost Optimization**: Route optimization reduces fuel costs and travel time
-- **Safety Features**: Real-time tracking and driver verification
-- **Environmental Impact**: Promotes carpooling and reduces carbon footprint
-
-### ✅ Content & Visualization
-- **Modern UI/UX**: Clean, intuitive interface with smooth animations
-- **Rich Visual Data**: Custom markers, info windows, and route visualization
-- **Accessibility**: WCAG compliant design with keyboard navigation
-- **Responsive Design**: Works seamlessly across all devices
-
-### ✅ Technical Execution
-- **Advanced Google Maps Integration**: Multiple APIs working together
-- **Real-time Features**: Live location updates and status changes
-- **Performance Optimized**: Efficient rendering and data management
-- **Extensible Architecture**: Easy to add new features and integrations
-
-### ✅ User Experience
-- **Intuitive Navigation**: Clear, logical user flow
-- **Smooth Interactions**: Responsive buttons and form controls
-- **Visual Feedback**: Loading states, success messages, and error handling
-- **Accessibility**: Screen reader support and keyboard navigation
-
-## 🚀 Getting Started
-
-### Prerequisites
+Before you begin, ensure you have the following installed:
 - Node.js 18+ 
-- Google Maps Platform API Key
+- npm or yarn
+- Git
 
-### Installation
+## 🔧 Installation
 
 1. **Clone the repository**
    ```bash
@@ -127,113 +40,206 @@ directionsService.route({
    ```bash
    npm install
    # or
-   pnpm install
+   yarn install
    ```
 
 3. **Set up environment variables**
    ```bash
-   cp .env.local.example .env.local
+   cp env.example .env.local
    ```
-   Add your Google Maps API key to `.env.local`
 
-4. **Run the development server**
+4. **Configure Firebase**
+   - Go to [Firebase Console](https://console.firebase.google.com/)
+   - Create a new project
+   - Enable Authentication (Email/Password)
+   - Create a Firestore database
+   - Get your project configuration
+
+5. **Configure Google Maps API**
+   - Go to [Google Cloud Console](https://console.cloud.google.com/)
+   - Create a new project or select existing
+   - Enable these APIs:
+     - Maps JavaScript API
+     - Geocoding API
+     - Directions API
+     - Places API (optional)
+   - Create an API key
+
+6. **Update environment variables**
+   Edit `.env.local` and add your configuration:
+   ```env
+   # Firebase Configuration
+   NEXT_PUBLIC_FIREBASE_API_KEY=your_firebase_api_key
+   NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+   NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
+   NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+   NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+   NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
+   NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=your_measurement_id
+
+   # Google Maps API Key
+   NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
+   ```
+
+## 🚀 Running the Application
+
+1. **Development mode**
    ```bash
    npm run dev
    # or
-   pnpm dev
+   yarn dev
    ```
 
-5. **Open your browser**
-   Navigate to `http://localhost:3000`
+2. **Build for production**
+   ```bash
+   npm run build
+   npm start
+   ```
 
-## 🛠️ Technical Stack
+3. **Open your browser**
+   Navigate to [http://localhost:3000](http://localhost:3000)
 
-- **Frontend**: Next.js 15, React 19, TypeScript
-- **Styling**: Tailwind CSS, Radix UI
-- **Maps**: Google Maps Platform APIs
-- **State Management**: React Hooks
-- **Build Tool**: Vite (via Next.js)
-- **Package Manager**: pnpm
+## 📁 Project Structure
 
-## 📱 Features
-
-### For Passengers
-- Real-time driver location tracking
-- Estimated arrival times
-- Route visualization
-- Driver ratings and reviews
-- Secure payment integration
-
-### For Drivers
-- Passenger matching algorithm
-- Route optimization
-- Earnings tracking
-- Schedule management
-- Safety features
-
-### Platform Features
-- Real-time notifications
-- Multi-language support
-- Accessibility compliance
-- Performance monitoring
-- Analytics dashboard
-
-## 🔧 Advanced Features
-
-### Real-Time Matching Algorithm
-```typescript
-interface MatchingCriteria {
-  distance: number
-  rating: number
-  vehicleType: string
-  availability: boolean
-  preferences: UserPreferences
-}
+```
+RideMatch/
+├── app/                    # Next.js app directory
+│   ├── auth/              # Authentication pages
+│   ├── dashboard/         # Main dashboard
+│   ├── globals.css        # Global styles
+│   ├── layout.tsx         # Root layout
+│   └── page.tsx           # Home page
+├── components/            # Reusable components
+│   ├── ui/               # UI components (Radix)
+│   ├── Header.tsx        # Navigation header
+│   ├── RideMap.tsx       # Interactive map component
+│   └── ProtectedRoute.tsx # Auth protection wrapper
+├── lib/                  # Utility libraries
+│   ├── firebase.ts       # Firebase configuration
+│   ├── auth.ts           # Authentication functions
+│   ├── rides.ts          # Ride management functions
+│   ├── maps.ts           # Google Maps utilities
+│   └── utils.ts          # General utilities
+├── types/                # TypeScript type definitions
+├── contexts/             # React contexts
+└── public/               # Static assets
 ```
 
-### Route Optimization
-- Traffic-aware routing
-- Multiple waypoint support
-- Alternative route suggestions
-- Real-time ETA updates
+## 🔐 Firebase Setup
 
-### Safety & Security
-- Driver verification system
-- Real-time location sharing
-- Emergency contact integration
-- Incident reporting
+### Authentication
+1. In Firebase Console, go to Authentication
+2. Enable Email/Password sign-in method
+3. Set up password reset (optional)
 
-## 📊 Performance Metrics
+### Firestore Database
+1. Create a Firestore database
+2. Set up security rules:
+   ```javascript
+   rules_version = '2';
+   service cloud.firestore {
+     match /databases/{database}/documents {
+       // Users can read/write their own data
+       match /users/{userId} {
+         allow read, write: if request.auth != null && request.auth.uid == userId;
+       }
+       
+       // Rides can be read by all authenticated users, written by owners
+       match /rides/{rideId} {
+         allow read: if request.auth != null;
+         allow write: if request.auth != null && request.auth.uid == resource.data.driverId;
+       }
+       
+       // Ride requests
+       match /rideRequests/{requestId} {
+         allow read, write: if request.auth != null;
+       }
+     }
+   }
+   ```
 
-- **Load Time**: < 2 seconds
-- **Map Rendering**: < 500ms
-- **Route Calculation**: < 1 second
-- **Real-time Updates**: < 100ms latency
+### Storage (Optional)
+1. Enable Firebase Storage
+2. Set up storage rules for profile pictures
 
-## 🌟 Innovation Highlights
+## 🗺️ Google Maps Setup
 
-1. **Intelligent Matching**: AI-powered driver-passenger pairing
-2. **Predictive Routing**: Machine learning for route optimization
-3. **Accessibility First**: WCAG 2.1 AA compliance
-4. **Global Scalability**: Multi-region deployment ready
-5. **Real-time Analytics**: Live performance monitoring
+1. **Enable APIs** in Google Cloud Console:
+   - Maps JavaScript API
+   - Geocoding API
+   - Directions API
+   - Places API (for autocomplete)
 
-## 🎯 Future Enhancements
+2. **Set up billing** (required for API usage)
 
-- **AI-Powered Matching**: Machine learning for better pairing
-- **Voice Integration**: Voice commands for hands-free operation
-- **AR Navigation**: Augmented reality for route guidance
-- **Electric Vehicle Support**: EV charging station integration
-- **Carpool Optimization**: Multi-passenger route planning
+3. **Restrict API key** to your domain for security
 
-## 📄 License
+## 🚀 Deployment
 
-MIT License - see LICENSE file for details
+### Vercel (Recommended)
+1. Push your code to GitHub
+2. Connect your repository to Vercel
+3. Add environment variables in Vercel dashboard
+4. Deploy!
+
+### Other Platforms
+The app can be deployed to any platform that supports Next.js:
+- Netlify
+- Railway
+- DigitalOcean App Platform
+
+## 🧪 Testing
+
+```bash
+# Run linting
+npm run lint
+
+# Run type checking
+npm run type-check
+
+# Run tests (when implemented)
+npm test
+```
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our contributing guidelines for more information.
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🆘 Support
+
+If you encounter any issues:
+
+1. Check the [Issues](https://github.com/yourusername/ridematch/issues) page
+2. Create a new issue with detailed information
+3. Include your environment details and error messages
+
+## 🔮 Roadmap
+
+- [ ] Real-time messaging
+- [ ] Push notifications
+- [ ] Payment integration
+- [ ] Driver verification
+- [ ] Ride history
+- [ ] Mobile app
+- [ ] Advanced filtering
+- [ ] Route optimization
+
+## 🙏 Acknowledgments
+
+- [Next.js](https://nextjs.org/) for the amazing framework
+- [Firebase](https://firebase.google.com/) for backend services
+- [Tailwind CSS](https://tailwindcss.com/) for styling
+- [Radix UI](https://www.radix-ui.com/) for accessible components
+- [Google Maps](https://developers.google.com/maps) for mapping services
 
 ---
 
-**Built with ❤️ using Google Maps Platform**
+Made with ❤️ for the community

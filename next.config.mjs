@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  experimental: {
+    appDir: true,
+  },
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -8,6 +11,10 @@ const nextConfig = {
   },
   images: {
     unoptimized: true,
+  },
+  // Add support for environment variables
+  env: {
+    CUSTOM_KEY: process.env.CUSTOM_KEY,
   },
 }
 

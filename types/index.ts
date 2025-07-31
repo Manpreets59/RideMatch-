@@ -1,10 +1,24 @@
 export interface User {
   uid: string
   email: string
-  displayName: string
+  firstName: string
+  lastName: string
+  phone: string
   photoURL?: string
-  phoneNumber?: string
-  role: 'driver' | 'passenger'
+  role?: 'driver' | 'passenger'
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface UserProfile {
+  uid: string
+  email: string
+  firstName: string
+  lastName: string
+  phone: string
+  photoURL?: string
+  createdAt: Date
+  updatedAt: Date
 }
 
 export interface Ride {
@@ -42,4 +56,14 @@ export interface Driver {
     lat: number
     lng: number
   }
+}
+
+export interface RideRequest {
+  id: string
+  rideId: string
+  passengerId: string
+  status: 'pending' | 'accepted' | 'rejected' | 'cancelled'
+  message?: string
+  createdAt: Date
+  updatedAt: Date
 }
