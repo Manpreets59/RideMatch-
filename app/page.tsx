@@ -96,6 +96,8 @@ export default function HomePage() {
           </div>
         )}
         </header>
+      </div>
+  )};
 
 {/* page.tsx app/dashboard canot find module lucid-react orits corrosponding type declaration 
 page.tsx app canot find module lucid react or its corrosponding type declaration 
