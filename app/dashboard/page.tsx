@@ -34,7 +34,6 @@ import {
   Leaf,
   TrendingUp,
   Car,
-  Route,
   ArrowRight,
   X
 } from "lucide-react"
@@ -148,7 +147,7 @@ export default function DashboardPage() {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const [isSubmittingOffer, setIsSubmittingOffer] = useState(false)
-  const [requestedRides, setRequestedRides] = useState<Set<number>>(new Set())
+  const [requestedRides, setRequestedRides] = useState<number[]>([]) // Changed from Set to array
   const [showFilters, setShowFilters] = useState(false)
   const [activeTab, setActiveTab] = useState("find")
 
@@ -291,6 +290,11 @@ export default function DashboardPage() {
     return parseFloat(priceString.replace('$', ''))
   }, [])
 
+  // Helper function to check if ride is requested
+  const isRideRequested = useCallback((rideId: number) => {
+    return requestedRides.includes(rideId)
+  }, [requestedRides])
+
   // Enhanced filtering and sorting logic
   const filteredAndSortedRides = useMemo(() => {
     let filtered = rides.filter(ride => {
@@ -342,13 +346,13 @@ export default function DashboardPage() {
 
   // Enhanced ride request with optimistic updates
   const handleRequestRide = useCallback(async (rideId: number) => {
-    if (requestedRides.has(rideId)) {
+    if (isRideRequested(rideId)) {
       alert('You have already requested this ride')
       return
     }
 
     // Optimistic update
-    setRequestedRides(prev => new Set([...prev, rideId]))
+    setRequestedRides(prev => [...prev, rideId])
     setRides(prev => prev.map(ride => 
       ride.id === rideId 
         ? { ...ride, seats: ride.seats - 1 }
@@ -362,11 +366,7 @@ export default function DashboardPage() {
       console.log('Ride requested successfully')
     } catch (error) {
       // Rollback optimistic update on error
-      setRequestedRides(prev => {
-        const newSet = new Set(prev)
-        newSet.delete(rideId)
-        return newSet
-      })
+      setRequestedRides(prev => prev.filter(id => id !== rideId))
       setRides(prev => prev.map(ride => 
         ride.id === rideId 
           ? { ...ride, seats: ride.seats + 1 }
@@ -375,7 +375,7 @@ export default function DashboardPage() {
       setUserStats(prev => ({ ...prev, ridesTaken: prev.ridesTaken - 1 }))
       alert('Failed to request ride. Please try again.')
     }
-  }, [requestedRides])
+  }, [isRideRequested])
 
   // Enhanced form submission with better validation
   const handleOfferRide = useCallback(async (e: React.FormEvent) => {
@@ -495,6 +495,9 @@ export default function DashboardPage() {
     }
   }
 
+  const unreadNotifications = notifications.filter(n => !n.read)
+  const unreadMessages = notifications.filter(n => n.type === 'message' && !n.read)
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
       {/* Enhanced Header */}
@@ -502,7 +505,7 @@ export default function DashboardPage() {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-green-600 rounded-xl flex items-center justify-center shadow-lg">
-              <Route className="w-6 h-6 text-white" />
+              <Navigation className="w-6 h-6 text-white" />
             </div>
             <div>
               <h1 className="text-xl font-bold text-gray-900">RideMatch</h1>
@@ -514,9 +517,9 @@ export default function DashboardPage() {
             <div className="relative">
               <Button variant="ghost" size="icon" className="relative">
                 <Bell className="w-5 h-5" />
-                {notifications.filter(n => !n.read).length > 0 && (
+                {unreadNotifications.length > 0 && (
                   <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full text-xs flex items-center justify-center text-white">
-                    {notifications.filter(n => !n.read).length}
+                    {unreadNotifications.length}
                   </span>
                 )}
               </Button>
@@ -856,10 +859,10 @@ export default function DashboardPage() {
                               <Button
                                 size="sm"
                                 onClick={() => handleRequestRide(ride.id)}
-                                disabled={requestedRides.has(ride.id) || ride.seats === 0}
+                                disabled={isRideRequested(ride.id) || ride.seats === 0}
                                 className="bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 disabled:opacity-50 shadow-md hover:shadow-lg transition-all duration-200"
                               >
-                                {requestedRides.has(ride.id) ? (
+                                {isRideRequested(ride.id) ? (
                                   <>
                                     <CheckCircle className="w-4 h-4 mr-1" />
                                     Requested
@@ -1134,9 +1137,9 @@ export default function DashboardPage() {
                   <Button variant="outline" className="w-full justify-start hover:bg-blue-50 transition-colors">
                     <MessageCircle className="w-4 h-4 mr-2 text-blue-600" />
                     Messages
-                    {notifications.filter(n => n.type === 'message' && !n.read).length > 0 && (
+                    {unreadMessages.length > 0 && (
                       <Badge className="ml-auto bg-red-500 text-white text-xs">
-                        {notifications.filter(n => n.type === 'message' && !n.read).length}
+                        {unreadMessages.length}
                       </Badge>
                     )}
                   </Button>

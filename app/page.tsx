@@ -94,3 +94,13 @@ export default function HomePage() {
               </div>
             </div>
           </div>
+        )}
+        </header>
+
+{/* page.tsx app/dashboard canot find module lucid-react orits corrosponding type declaration 
+page.tsx app canot find module lucid react or its corrosponding type declaration 
+     jsx element div has no corrosponding closing tab 
+     </ expected  
+     RidMap.tsx components canot find module lucid-react or its corrosponding type declaration 
+*/}
+
