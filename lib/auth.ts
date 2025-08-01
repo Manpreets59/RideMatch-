@@ -1,81 +1,86 @@
-import { auth, db } from './firebase'
+// lib/auth.ts
 import { 
-  signInWithEmailAndPassword, 
+  signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut as firebaseSignOut,
-  updateProfile
+  User
 } from 'firebase/auth'
-import { doc, setDoc, getDoc } from 'firebase/firestore'
-import type { User, UserProfile } from '@/types'
+import { 
+  doc, 
+  setDoc, 
+  getDoc, 
+  updateDoc,
+  serverTimestamp 
+} from 'firebase/firestore'
+import { auth, db } from './firebase'
+import type { UserProfile } from '@/types'
 
-export async function signUp(
-  email: string, 
-  password: string, 
-  firstName: string, 
-  lastName: string, 
-  phone: string
-): Promise<User> {
-  try {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password)
-    const user = userCredential.user
-
-    // Update user profile
-    await updateProfile(user, {
-      displayName: `${firstName} ${lastName}`
-    })
-
-    // Create user document in Firestore
-    const userProfile: UserProfile = {
-      uid: user.uid,
-      email: user.email!,
-      firstName,
-      lastName,
-      phone,
-      photoURL: user.photoURL || undefined,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    }
-
-    await setDoc(doc(db, 'users', user.uid), userProfile)
-
-    return {
-      ...userProfile,
-      role: undefined
-    }
-  } catch (error: any) {
-    console.error('Error in signUp:', error)
-    throw new Error(error.message || 'Failed to create account')
-  }
-}
-
+// Sign in function
 export async function signIn(email: string, password: string) {
-  try {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password)
-    return userCredential.user
-  } catch (error: any) {
-    console.error('Error in signIn:', error)
-    throw new Error(error.message || 'Failed to sign in')
-  }
+  const userCredential = await signInWithEmailAndPassword(auth, email, password)
+  return userCredential
 }
 
+// Sign up function
+export async function signUp(email: string, password: string, firstName: string, lastName: string, phone: string) {
+  const userCredential = await createUserWithEmailAndPassword(auth, email, password)
+  
+  // Create user profile
+  await createUserProfile(userCredential.user.uid, {
+    firstName,
+    lastName,
+    email,
+    phone,
+    verified: false,
+    createdAt: new Date().toISOString()
+  })
+  
+  return userCredential
+}
+
+// Sign out function
 export async function signOut() {
-  try {
-    await firebaseSignOut(auth)
-  } catch (error: any) {
-    console.error('Error in signOut:', error)
-    throw new Error(error.message || 'Failed to sign out')
-  }
+  await firebaseSignOut(auth)
 }
 
+// Create user profile in Firestore
+export async function createUserProfile(uid: string, profileData: Partial<UserProfile>) {
+  const userRef = doc(db, 'users', uid)
+  await setDoc(userRef, {
+    ...profileData,
+    id: uid,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp()
+  })
+}
+
+// Get user profile from Firestore
 export async function getUserProfile(uid: string): Promise<UserProfile | null> {
   try {
-    const userDoc = await getDoc(doc(db, 'users', uid))
-    if (userDoc.exists()) {
-      return userDoc.data() as UserProfile
+    const userRef = doc(db, 'users', uid)
+    const userSnap = await getDoc(userRef)
+    
+    if (userSnap.exists()) {
+      const data = userSnap.data()
+      return {
+        id: uid,
+        ...data,
+        createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt
+      } as UserProfile
     }
+    
     return null
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error fetching user profile:', error)
-    throw new Error(error.message || 'Failed to fetch user profile')
+    throw error
   }
+}
+
+// Update user profile
+export async function updateUserProfile(uid: string, updates: Partial<UserProfile>) {
+  const userRef = doc(db, 'users', uid)
+  await updateDoc(userRef, {
+    ...updates,
+    updatedAt: serverTimestamp()
+  })
 }

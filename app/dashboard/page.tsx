@@ -1,6 +1,8 @@
 "use client"
 
 import { useState, useEffect, useMemo, useCallback } from "react"
+import { useRouter } from "next/navigation"
+import { useAuth } from "@/app/auth/contexts/AuthContext"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -100,16 +102,10 @@ interface Notification {
   read: boolean
 }
 
-// Mock user profile for demo
-const mockUserProfile = {
-  firstName: "John",
-  lastName: "Doe",
-  email: "john.doe@example.com",
-  avatar: "",
-  verified: true
-}
-
 export default function DashboardPage() {
+  const router = useRouter()
+  const { user, userProfile, loading, logout } = useAuth()
+
   // Enhanced state management with better initial values
   const [searchFilters, setSearchFilters] = useState<SearchFilters>({
     from: "",
@@ -147,12 +143,21 @@ export default function DashboardPage() {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const [isSubmittingOffer, setIsSubmittingOffer] = useState(false)
-  const [requestedRides, setRequestedRides] = useState<number[]>([]) // Changed from Set to array
+  const [requestedRides, setRequestedRides] = useState<number[]>([])
   const [showFilters, setShowFilters] = useState(false)
   const [activeTab, setActiveTab] = useState("find")
 
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/auth')
+    }
+  }, [user, loading, router])
+
   // Enhanced mock data with more realistic information
   useEffect(() => {
+    if (!user) return
+
     const mockRides: Ride[] = [
       {
         id: 1,
@@ -207,24 +212,6 @@ export default function DashboardPage() {
         vehicleType: 'suv',
         amenities: ['Coffee', 'Snacks', 'AC', 'WiFi'],
         instantBook: true
-      },
-      {
-        id: 4,
-        driver: "Alex Rodriguez",
-        rating: 4.7,
-        from: "Ballard",
-        to: "South Lake Union",
-        time: "8:30 AM",
-        date: getCurrentDate(),
-        price: "$10",
-        seats: 2,
-        distance: "9.8 miles",
-        duration: "22 min",
-        description: "Luxury ride with premium sound system",
-        status: 'available',
-        vehicleType: 'coupe',
-        amenities: ['Premium Audio', 'AC', 'Luxury'],
-        instantBook: false
       }
     ]
     setRides(mockRides)
@@ -246,18 +233,10 @@ export default function DashboardPage() {
         message: 'Thanks for the smooth ride yesterday!',
         time: '2 hours ago',
         read: false
-      },
-      {
-        id: 3,
-        type: 'rating',
-        title: 'New rating received',
-        message: 'You received a 5-star rating from Emma',
-        time: '1 day ago',
-        read: true
       }
     ]
     setNotifications(mockNotifications)
-  }, [])
+  }, [user])
 
   // Helper functions
   const getCurrentDate = useCallback(() => {
@@ -290,7 +269,6 @@ export default function DashboardPage() {
     return parseFloat(priceString.replace('$', ''))
   }, [])
 
-  // Helper function to check if ride is requested
   const isRideRequested = useCallback((rideId: number) => {
     return requestedRides.includes(rideId)
   }, [requestedRides])
@@ -311,7 +289,6 @@ export default function DashboardPage() {
              matchesInstantBook && ride.status === 'available'
     })
 
-    // Sort rides based on selected criteria
     filtered.sort((a, b) => {
       switch (searchFilters.sortBy) {
         case 'price':
@@ -329,7 +306,6 @@ export default function DashboardPage() {
     return filtered
   }, [rides, searchFilters, getPriceValue])
 
-  // Enhanced search with validation
   const handleSearch = useCallback(async () => {
     if (!searchFilters.from && !searchFilters.to) {
       alert('Please enter at least a pickup or destination location')
@@ -337,21 +313,16 @@ export default function DashboardPage() {
     }
 
     setIsSearching(true)
-    
-    // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1200))
-    
     setIsSearching(false)
   }, [searchFilters])
 
-  // Enhanced ride request with optimistic updates
   const handleRequestRide = useCallback(async (rideId: number) => {
     if (isRideRequested(rideId)) {
       alert('You have already requested this ride')
       return
     }
 
-    // Optimistic update
     setRequestedRides(prev => [...prev, rideId])
     setRides(prev => prev.map(ride => 
       ride.id === rideId 
@@ -361,11 +332,9 @@ export default function DashboardPage() {
     setUserStats(prev => ({ ...prev, ridesTaken: prev.ridesTaken + 1 }))
 
     try {
-      // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 800))
       console.log('Ride requested successfully')
     } catch (error) {
-      // Rollback optimistic update on error
       setRequestedRides(prev => prev.filter(id => id !== rideId))
       setRides(prev => prev.map(ride => 
         ride.id === rideId 
@@ -377,11 +346,9 @@ export default function DashboardPage() {
     }
   }, [isRideRequested])
 
-  // Enhanced form submission with better validation
   const handleOfferRide = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
     
-    // Enhanced validation
     const requiredFields = ['from', 'to', 'date', 'time']
     const missingFields = requiredFields.filter(field => !offerForm[field as keyof OfferRideForm])
     
@@ -395,12 +362,6 @@ export default function DashboardPage() {
       return
     }
 
-    if (offerForm.price < 0) {
-      alert('Price cannot be negative')
-      return
-    }
-
-    // Check if date is not in the past
     if (offerForm.date < getCurrentDate()) {
       alert('Please select a future date')
       return
@@ -409,12 +370,11 @@ export default function DashboardPage() {
     setIsSubmittingOffer(true)
 
     try {
-      // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1800))
 
       const newRide: Ride = {
         id: Date.now(),
-        driver: `${mockUserProfile.firstName} ${mockUserProfile.lastName}`,
+        driver: `${userProfile?.firstName || 'Unknown'} ${userProfile?.lastName || 'User'}`,
         rating: userStats.rating,
         from: offerForm.from,
         to: offerForm.to,
@@ -434,7 +394,6 @@ export default function DashboardPage() {
       setRides(prev => [newRide, ...prev])
       setUserStats(prev => ({ ...prev, ridesOffered: prev.ridesOffered + 1 }))
 
-      // Reset form
       setOfferForm({
         from: "",
         to: "",
@@ -454,9 +413,17 @@ export default function DashboardPage() {
     } finally {
       setIsSubmittingOffer(false)
     }
-  }, [offerForm, getCurrentDate, userStats.rating])
+  }, [offerForm, getCurrentDate, userStats.rating, userProfile])
 
-  // Handle filter updates
+  const handleLogout = async () => {
+    try {
+      await logout()
+      router.push('/')
+    } catch (error) {
+      console.error('Logout error:', error)
+    }
+  }
+
   const updateSearchFilter = useCallback((field: keyof SearchFilters, value: string | boolean) => {
     setSearchFilters(prev => ({ ...prev, [field]: value }))
   }, [])
@@ -476,6 +443,23 @@ export default function DashboardPage() {
       sortBy: 'time'
     })
   }, [])
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-gray-600">Loading dashboard...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Don't render if user is not authenticated
+  if (!user) {
+    return null
+  }
 
   const getVehicleIcon = (type: string) => {
     return <Car className="w-4 h-4" />
@@ -533,14 +517,18 @@ export default function DashboardPage() {
               <Settings className="w-5 h-5" />
             </Button>
             
+            <Button variant="ghost" size="icon" onClick={handleLogout} title="Logout">
+              <LogOut className="w-5 h-5" />
+            </Button>
+            
             <div className="flex items-center space-x-3 pl-3 border-l border-gray-200">
               <Avatar className="w-8 h-8">
                 <AvatarFallback className="bg-gradient-to-r from-blue-100 to-green-100 text-blue-800 font-semibold">
-                  {getInitials(`${mockUserProfile.firstName} ${mockUserProfile.lastName}`)}
+                  {getInitials(`${userProfile?.firstName || 'U'} ${userProfile?.lastName || 'U'}`)}
                 </AvatarFallback>
               </Avatar>
               <div className="hidden md:block">
-                <p className="text-sm font-medium text-gray-900">{mockUserProfile.firstName}</p>
+                <p className="text-sm font-medium text-gray-900">{userProfile?.firstName || 'User'}</p>
                 <div className="flex items-center space-x-1">
                   <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
                   <span className="text-xs text-gray-600">{userStats.rating}</span>
@@ -557,7 +545,7 @@ export default function DashboardPage() {
           <div className="lg:col-span-2">
             <div className="mb-8">
               <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent mb-3">
-                Welcome back, {mockUserProfile.firstName}! 👋
+                Welcome back, {userProfile?.firstName || 'User'}! 👋
               </h1>
               <p className="text-gray-600 text-lg">Ready to discover your next journey or help someone reach their destination?</p>
             </div>
@@ -1073,113 +1061,7 @@ export default function DashboardPage() {
                     <div className="text-2xl font-bold text-blue-600">{userStats.ridesTaken}</div>
                     <div className="text-xs text-gray-600">Rides Taken</div>
                   </div>
-                  <div className="text-center p-3 bg-white/50 rounded-lg">
-                    <div className="text-2xl font-bold text-green-600">{userStats.ridesOffered}</div>
-                    <div className="text-xs text-gray-600">Rides Offered</div>
-                  </div>
-                  <div className="text-center p-3 bg-white/50 rounded-lg">
-                    <div className="text-2xl font-bold text-green-600">${userStats.moneySaved}</div>
-                    <div className="text-xs text-gray-600">Money Saved</div>
-                  </div>
-                  <div className="text-center p-3 bg-white/50 rounded-lg">
-                    <div className="text-2xl font-bold text-blue-600">{userStats.co2Saved}</div>
-                    <div className="text-xs text-gray-600">lbs CO₂ Saved</div>
-                  </div>
-                </div>
-                <div className="mt-4 p-3 bg-white/70 rounded-lg border border-gray-200">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Total Distance</span>
-                    <Badge className="bg-purple-100 text-purple-800">{userStats.totalDistance} miles</Badge>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Enhanced Recent Activity */}
-            <Card className="shadow-lg border-0 bg-white/70 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle>Recent Activity</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-3 p-3 bg-green-50/50 rounded-lg border-l-4 border-green-400">
-                    <CheckCircle className="w-5 h-5 text-green-500" />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900">Ride completed</p>
-                      <p className="text-xs text-gray-500">Downtown to Airport • 2h ago</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-3 p-3 bg-blue-50/50 rounded-lg border-l-4 border-blue-400">
-                    <Bell className="w-5 h-5 text-blue-500" />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900">New ride request</p>
-                      <p className="text-xs text-gray-500">Capitol Hill to UW • 4h ago</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-3 p-3 bg-yellow-50/50 rounded-lg border-l-4 border-yellow-400">
-                    <Plus className="w-5 h-5 text-yellow-500" />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900">Ride offered</p>
-                      <p className="text-xs text-gray-500">Bellevue to Seattle • 1d ago</p>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Enhanced Quick Actions */}
-            <Card className="shadow-lg border-0 bg-white/70 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle>Quick Actions</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <Button variant="outline" className="w-full justify-start hover:bg-blue-50 transition-colors">
-                    <MessageCircle className="w-4 h-4 mr-2 text-blue-600" />
-                    Messages
-                    {unreadMessages.length > 0 && (
-                      <Badge className="ml-auto bg-red-500 text-white text-xs">
-                        {unreadMessages.length}
-                      </Badge>
-                    )}
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start hover:bg-yellow-50 transition-colors">
-                    <Star className="w-4 h-4 mr-2 text-yellow-600" />
-                    Rate Riders
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start hover:bg-gray-50 transition-colors">
-                    <Settings className="w-4 h-4 mr-2 text-gray-600" />
-                    Settings
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start hover:bg-green-50 transition-colors">
-                    <Leaf className="w-4 h-4 mr-2 text-green-600" />
-                    Carbon Impact
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Environmental Impact Card */}
-            <Card className="shadow-lg border-0 bg-gradient-to-br from-green-50 to-blue-50">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Leaf className="w-5 h-5 text-green-600" />
-                  <span>Eco Impact</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">This Month</span>
-                    <Badge className="bg-green-100 text-green-800">
-                      <Leaf className="w-3 h-3 mr-1" />
-                      12 lbs CO₂
-                    </Badge>
-                  </div>
-                  <div className="text-xs text-gray-500 text-center p-2 bg-white/50 rounded">
-                    🌱 Equivalent to planting 0.3 trees this month!
-                  </div>
-                </div>
+                </div> 
               </CardContent>
             </Card>
           </div>

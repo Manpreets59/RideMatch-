@@ -3,10 +3,13 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { 
   User, 
-  onAuthStateChanged
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut as firebaseSignOut
 } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
-import { getUserProfile } from '@/lib/auth'
+import { getUserProfile, createUserProfile } from '@/lib/auth'
 import type { UserProfile } from '@/types'
 
 interface AuthContextType {
@@ -56,14 +59,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        setUser(user)
-        await fetchUserProfile(user.uid)
-      } else {
-        setUser(null)
-        setUserProfile(null)
+      try {
+        if (user) {
+          setUser(user)
+          await fetchUserProfile(user.uid)
+        } else {
+          setUser(null)
+          setUserProfile(null)
+        }
+      } catch (error) {
+        console.error('Auth state change error:', error)
+      } finally {
+        setLoading(false)
       }
-      setLoading(false)
     })
 
     return unsubscribe
@@ -71,31 +79,48 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { signIn: signInFunction } = await import('@/lib/auth')
-      await signInFunction(email, password)
+      setLoading(true)
+      const userCredential = await signInWithEmailAndPassword(auth, email, password)
+      // User will be set by onAuthStateChanged
     } catch (error: any) {
       console.error('Sign in error:', error)
-      throw new Error(error.message || 'Failed to sign in')
+      throw new Error(getFirebaseErrorMessage(error.code) || 'Failed to sign in')
+    } finally {
+      setLoading(false)
     }
   }
 
   const signUp = async (email: string, password: string, firstName: string, lastName: string, phone: string) => {
     try {
-      const { signUp: signUpFunction } = await import('@/lib/auth')
-      await signUpFunction(email, password, firstName, lastName, phone)
+      setLoading(true)
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password)
+      
+      // Create user profile in Firestore
+      await createUserProfile(userCredential.user.uid, {
+        firstName,
+        lastName,
+        email,
+        phone,
+        createdAt: new Date().toISOString(),
+        verified: false
+      })
+      
+      // Profile will be fetched by onAuthStateChanged
     } catch (error: any) {
       console.error('Sign up error:', error)
-      throw new Error(error.message || 'Failed to create account')
+      throw new Error(getFirebaseErrorMessage(error.code) || 'Failed to create account')
+    } finally {
+      setLoading(false)
     }
   }
 
   const logout = async () => {
     try {
-      const { signOut } = await import('@/lib/auth')
-      await signOut()
+      await firebaseSignOut(auth)
+      // User state will be cleared by onAuthStateChanged
     } catch (error: any) {
       console.error('Sign out error:', error)
-      throw new Error(error.message || 'Failed to sign out')
+      throw new Error('Failed to sign out')
     }
   }
 
@@ -114,4 +139,26 @@ export function AuthProvider({ children }: AuthProviderProps) {
       {children}
     </AuthContext.Provider>
   )
+}
+
+// Helper function to convert Firebase error codes to user-friendly messages
+function getFirebaseErrorMessage(errorCode: string): string {
+  switch (errorCode) {
+    case 'auth/user-not-found':
+      return 'No account found with this email address'
+    case 'auth/wrong-password':
+      return 'Incorrect password'
+    case 'auth/email-already-in-use':
+      return 'An account with this email already exists'
+    case 'auth/weak-password':
+      return 'Password should be at least 6 characters'
+    case 'auth/invalid-email':
+      return 'Please enter a valid email address'
+    case 'auth/too-many-requests':
+      return 'Too many failed attempts. Please try again later'
+    case 'auth/network-request-failed':
+      return 'Network error. Please check your connection'
+    default:
+      return 'An error occurred. Please try again'
+  }
 }
