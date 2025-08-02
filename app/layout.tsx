@@ -48,13 +48,13 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: 'https://ridematch.app', // Replace with your actual domain
+    url: 'https://ridematch.app',
     siteName: 'RideMatch',
     title: 'RideMatch - Smart Ride Sharing',
     description: 'Connect with travelers heading your way. Smart, affordable, and eco-friendly ride sharing.',
     images: [
       {
-        url: '/og-image.png', // Add this image to your public folder
+        url: '/og-image.png',
         width: 1200,
         height: 630,
         alt: 'RideMatch - Smart Ride Sharing',
@@ -67,7 +67,7 @@ export const metadata: Metadata = {
     description: 'Connect with travelers heading your way. Smart, affordable, and eco-friendly ride sharing.',
     images: ['/og-image.png'],
   },
-  metadataBase: new URL('https://ridematch.app'), // Replace with your actual domain
+  metadataBase: new URL('https://ridematch.app'),
 }
 
 export default function RootLayout({
@@ -105,13 +105,11 @@ export default function RootLayout({
         <meta name="msapplication-TileColor" content="#3b82f6" />
         <meta name="msapplication-tap-highlight" content="no" />
         
-        {/* Security headers */}
+        {/* Security headers - REMOVED X-Frame-Options meta tag */}
         <meta httpEquiv="X-Content-Type-Options" content="nosniff" />
-        <meta httpEquiv="X-Frame-Options" content="DENY" />
         <meta httpEquiv="X-XSS-Protection" content="1; mode=block" />
       </head>
       <body className="min-h-screen bg-background font-sans antialiased">
-        {/* Skip to main content for accessibility */}
         <a 
           href="#main-content" 
           className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-primary text-primary-foreground px-4 py-2 rounded-lg z-50"
@@ -119,18 +117,14 @@ export default function RootLayout({
           Skip to main content
         </a>
         
-        {/* Wrap everything in AuthProvider */}
         <AuthProvider>
-          {/* Main content wrapper */}
           <div id="main-content" className="relative">
             {children}
           </div>
           
-          {/* Toast notifications */}
           <Toaster />
         </AuthProvider>
         
-        {/* Global loading/error boundary could go here */}
         <div id="modal-root" />
         <div id="toast-root" />
       </body>
