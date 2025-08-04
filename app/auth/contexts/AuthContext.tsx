@@ -4,9 +4,11 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { 
   User, 
   onAuthStateChanged,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  signOut as firebaseSignOut
+  signInWithPopup,
+  GoogleAuthProvider,
+  GithubAuthProvider,
+  signOut as firebaseSignOut,
+  AuthError
 } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 import { getUserProfile, createUserProfile } from '@/lib/auth'
@@ -16,8 +18,8 @@ interface AuthContextType {
   user: User | null
   userProfile: UserProfile | null
   loading: boolean
-  signIn: (email: string, password: string) => Promise<void>
-  signUp: (email: string, password: string, firstName: string, lastName: string, phone: string) => Promise<void>
+  signInWithGoogle: () => Promise<void>
+  signInWithGitHub: () => Promise<void>
   logout: () => Promise<void>
   refreshUserProfile: () => Promise<void>
 }
@@ -57,11 +59,42 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }
 
+  const createProfileFromOAuth = async (user: User) => {
+    try {
+      // Check if profile already exists
+      const existingProfile = await getUserProfile(user.uid)
+      if (existingProfile) {
+        return
+      }
+    } catch (error) {
+      // Profile doesn't exist, create one
+    }
+
+    // Extract name from display name or email
+    const displayName = user.displayName || user.email?.split('@')[0] || 'User'
+    const nameParts = displayName.split(' ')
+    const firstName = nameParts[0] || 'User'
+    const lastName = nameParts.slice(1).join(' ') || ''
+
+    await createUserProfile(user.uid, {
+      firstName,
+      lastName,
+      email: user.email || '',
+      phone: user.phoneNumber || '',
+      createdAt: new Date().toISOString(),
+      verified: user.emailVerified,
+      photoURL: user.photoURL || undefined,
+      provider: user.providerData[0]?.providerId || 'unknown'
+    })
+  }
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       try {
         if (user) {
           setUser(user)
+          // Create profile if it doesn't exist (for OAuth users)
+          await createProfileFromOAuth(user)
           await fetchUserProfile(user.uid)
         } else {
           setUser(null)
@@ -69,6 +102,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         }
       } catch (error) {
         console.error('Auth state change error:', error)
+        setUser(null)
+        setUserProfile(null)
       } finally {
         setLoading(false)
       }
@@ -77,38 +112,34 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return unsubscribe
   }, [])
 
-  const signIn = async (email: string, password: string) => {
+  const signInWithGoogle = async () => {
     try {
       setLoading(true)
-      const userCredential = await signInWithEmailAndPassword(auth, email, password)
+      const provider = new GoogleAuthProvider()
+      provider.addScope('email')
+      provider.addScope('profile')
+      
+      const result = await signInWithPopup(auth, provider)
       // User will be set by onAuthStateChanged
     } catch (error: any) {
-      console.error('Sign in error:', error)
-      throw new Error(getFirebaseErrorMessage(error.code) || 'Failed to sign in')
+      console.error('Google sign in error:', error)
+      throw new Error(getOAuthErrorMessage(error) || 'Failed to sign in with Google')
     } finally {
       setLoading(false)
     }
   }
 
-  const signUp = async (email: string, password: string, firstName: string, lastName: string, phone: string) => {
+  const signInWithGitHub = async () => {
     try {
       setLoading(true)
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password)
+      const provider = new GithubAuthProvider()
+      provider.addScope('user:email')
       
-      // Create user profile in Firestore
-      await createUserProfile(userCredential.user.uid, {
-        firstName,
-        lastName,
-        email,
-        phone,
-        createdAt: new Date().toISOString(),
-        verified: false
-      })
-      
-      // Profile will be fetched by onAuthStateChanged
+      const result = await signInWithPopup(auth, provider)
+      // User will be set by onAuthStateChanged
     } catch (error: any) {
-      console.error('Sign up error:', error)
-      throw new Error(getFirebaseErrorMessage(error.code) || 'Failed to create account')
+      console.error('GitHub sign in error:', error)
+      throw new Error(getOAuthErrorMessage(error) || 'Failed to sign in with GitHub')
     } finally {
       setLoading(false)
     }
@@ -128,8 +159,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     user,
     userProfile,
     loading,
-    signIn,
-    signUp,
+    signInWithGoogle,
+    signInWithGitHub,
     logout,
     refreshUserProfile
   }
@@ -141,24 +172,36 @@ export function AuthProvider({ children }: AuthProviderProps) {
   )
 }
 
-// Helper function to convert Firebase error codes to user-friendly messages
-function getFirebaseErrorMessage(errorCode: string): string {
-  switch (errorCode) {
-    case 'auth/user-not-found':
-      return 'No account found with this email address'
-    case 'auth/wrong-password':
-      return 'Incorrect password'
-    case 'auth/email-already-in-use':
-      return 'An account with this email already exists'
-    case 'auth/weak-password':
-      return 'Password should be at least 6 characters'
-    case 'auth/invalid-email':
-      return 'Please enter a valid email address'
+// Helper function to convert OAuth error codes to user-friendly messages
+function getOAuthErrorMessage(error: AuthError): string {
+  switch (error.code) {
+    case 'auth/popup-closed-by-user':
+      return 'Sign-in was cancelled. Please try again.'
+    case 'auth/popup-blocked':
+      return 'Popup was blocked by your browser. Please allow popups and try again.'
+    case 'auth/cancelled-popup-request':
+      return 'Another sign-in popup is already open.'
+    case 'auth/account-exists-with-different-credential':
+      return 'An account already exists with the same email address but different sign-in credentials.'
+    case 'auth/auth-domain-config-required':
+      return 'Authentication configuration error. Please contact support.'
+    case 'auth/operation-not-allowed':
+      return 'This sign-in method is not enabled. Please contact support.'
+    case 'auth/operation-not-supported-in-this-environment':
+      return 'This operation is not supported in your current environment.'
+    case 'auth/timeout':
+      return 'The operation has timed out. Please try again.'
     case 'auth/too-many-requests':
-      return 'Too many failed attempts. Please try again later'
+      return 'Too many failed attempts. Please try again later.'
     case 'auth/network-request-failed':
-      return 'Network error. Please check your connection'
+      return 'Network error. Please check your connection and try again.'
+    case 'auth/internal-error':
+      return 'An internal error occurred. Please try again.'
+    case 'auth/invalid-api-key':
+      return 'Invalid API key. Please contact support.'
+    case 'auth/app-not-authorized':
+      return 'This app is not authorized to use Firebase Authentication.'
     default:
-      return 'An error occurred. Please try again'
+      return 'An error occurred during sign-in. Please try again.'
   }
 }
