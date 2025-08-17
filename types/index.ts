@@ -6,6 +6,7 @@ export interface UserProfile {
   email: string
   phone: string
   avatar?: string
+  photoURL?: string
   verified: boolean
   createdAt: string
   updatedAt?: string
@@ -13,6 +14,7 @@ export interface UserProfile {
   totalRides?: number
   bio?: string
   preferences?: UserPreferences
+  provider?: string
 }
 
 export interface UserPreferences {
@@ -41,7 +43,7 @@ export interface Ride {
   seats: number
   price: number
   description?: string
-  status: 'available' | 'full' | 'completed' | 'cancelled'
+  status: 'pending' | 'available' | 'full' | 'completed' | 'cancelled'
   vehicleType: 'sedan' | 'suv' | 'hatchback' | 'coupe' | 'van'
   amenities: string[]
   instantBook: boolean
