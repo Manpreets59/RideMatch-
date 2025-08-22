@@ -480,7 +480,6 @@ export default function DashboardPage() {
   }
 
   const unreadNotifications = notifications.filter(n => !n.read)
-  const unreadMessages = notifications.filter(n => n.type === 'message' && !n.read)
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
@@ -1061,7 +1060,76 @@ export default function DashboardPage() {
                     <div className="text-2xl font-bold text-blue-600">{userStats.ridesTaken}</div>
                     <div className="text-xs text-gray-600">Rides Taken</div>
                   </div>
-                </div> 
+                  <div className="text-center p-3 bg-white/50 rounded-lg">
+                    <div className="text-2xl font-bold text-green-600">{userStats.ridesOffered}</div>
+                    <div className="text-xs text-gray-600">Rides Offered</div>
+                  </div>
+                  <div className="text-center p-3 bg-white/50 rounded-lg">
+                    <div className="text-2xl font-bold text-green-600">${userStats.moneySaved}</div>
+                    <div className="text-xs text-gray-600">Money Saved</div>
+                  </div>
+                  <div className="text-center p-3 bg-white/50 rounded-lg">
+                    <div className="text-2xl font-bold text-blue-600 flex items-center justify-center">
+                      <Leaf className="w-5 h-5 mr-1" />
+                      {userStats.co2Saved}
+                    </div>
+                    <div className="text-xs text-gray-600">kg CO₂ Saved</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Recent Activity Card */}
+            <Card className="shadow-lg border-0 bg-white/70 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Clock className="w-5 h-5 text-gray-600" />
+                  <span>Recent Activity</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-center space-x-3 p-2 bg-green-50/50 rounded-lg">
+                  <CheckCircle className="w-5 h-5 text-green-600" />
+                  <div>
+                    <p className="text-sm font-medium">Ride completed</p>
+                    <p className="text-xs text-gray-500">Downtown to Airport • 2 hours ago</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-3 p-2 bg-blue-50/50 rounded-lg">
+                  <Star className="w-5 h-5 text-yellow-500" />
+                  <div>
+                    <p className="text-sm font-medium">New 5-star rating</p>
+                    <p className="text-xs text-gray-500">From Sarah Johnson • 5 hours ago</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-3 p-2 bg-yellow-50/50 rounded-lg">
+                  <Users className="w-5 h-5 text-orange-600" />
+                  <div>
+                    <p className="text-sm font-medium">Ride request received</p>
+                    <p className="text-xs text-gray-500">Capitol Hill route • 1 day ago</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Quick Actions Card */}
+            <Card className="shadow-lg border-0 bg-white/70 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="text-lg">Quick Actions</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Button variant="outline" className="w-full justify-start">
+                  <MessageCircle className="w-4 h-4 mr-2" />
+                  Messages ({notifications.filter(n => n.type === 'message' && !n.read).length})
+                </Button>
+                <Button variant="outline" className="w-full justify-start">
+                  <Users className="w-4 h-4 mr-2" />
+                  Manage Rides
+                </Button>
+                <Button variant="outline" className="w-full justify-start">
+                  <Settings className="w-4 h-4 mr-2" />
+                  Profile Settings
+                </Button>
               </CardContent>
             </Card>
           </div>
